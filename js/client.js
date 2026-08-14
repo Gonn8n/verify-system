@@ -1,0 +1,535 @@
+// ============================================
+// VERIFY SYSTEM - Flujo del Cliente
+// ============================================
+
+const { createClient } = supabase;
+
+// Inicializar Supabase
+const supabaseClient = createClient(
+  SUPABASE_CONFIG.url,
+  SUPABASE_CONFIG.anonKey
+);
+
+// Estado
+let verificationData = null;
+let currentStep = 2;
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+
+// Archivos subidos
+let files = {
+  dniFront: null,
+  dniBack: null,
+  lifeProofVideo: null,
+  cardPhoto: null
+};
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+
+async function init() {
+  // Obtener código de la URL
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+
+  if (!code) {
+    showError('No se proporcionó un código de verificación válido');
+    return;
+  }
+
+  // Buscar verificación
+  const { data, error } = await supabaseClient
+    .rpc('get_verification_by_code', { code: code });
+
+  if (error || !data || data.length === 0) {
+    showError('Verificación no encontrada o código inválido');
+    return;
+  }
+
+  verificationData = data[0];
+
+  // Verificar si ya completó
+  if (verificationData.status === 'approved' || verificationData.status === 'rejected') {
+    showCompletedMessage();
+    return;
+  }
+
+  // Verificar si ya subió todo
+  if (verificationData.dni_front_url && verificationData.dni_back_url && 
+      verificationData.life_proof_video_url && verificationData.card_photo_url) {
+    showCompletedMessage();
+    return;
+  }
+
+  // Actualizar UI
+  document.getElementById('operationCode').textContent = '#' + verificationData.unique_code;
+  document.getElementById('commerceName').textContent = SUPABASE_CONFIG.commerceName;
+
+  // Detectar si es mobile
+  if (!isMobile()) {
+    showStep(3);
+    generateQR();
+  } else {
+    showStep(2);
+  }
+}
+
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function showError(message) {
+  document.querySelector('.verify-content').innerHTML = `
+    <div class="step-container active">
+      <div class="intro-card text-center">
+        <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+        <h2>Error</h2>
+        <p>${message}</p>
+      </div>
+    </div>
+  `;
+}
+
+function showCompletedMessage() {
+  document.querySelector('.verify-content').innerHTML = `
+    <div class="step-container active">
+      <div class="intro-card">
+        <div class="success-container">
+          <div class="success-icon-large">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h1>Validación en proceso.</h1>
+          <p>Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
+// NAVEGACIÓN ENTRE PASOS
+// ============================================
+
+function showStep(step) {
+  document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+  const stepEl = document.getElementById(`step${step}`);
+  if (stepEl) {
+    stepEl.classList.add('active');
+    currentStep = step;
+  }
+}
+
+// ============================================
+// QR CODE
+// ============================================
+
+function generateQR() {
+  const code = verificationData.unique_code;
+  const url = `${SUPABASE_CONFIG.domain}/v/?code=${code}`;
+  
+  // Usar API de QR code simple
+  const qrContainer = document.getElementById('qrCode');
+  if (qrContainer) {
+    qrContainer.innerHTML = `
+      <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR Code">
+      </div>
+      <p style="margin-top: 12px; font-size: 0.8rem; color: var(--color-text-secondary);">Escaneá el QR y seguí desde tu celular</p>
+    `;
+  }
+}
+
+// ============================================
+// STEP 2: INICIO
+// ============================================
+
+document.getElementById('startBtn')?.addEventListener('click', () => {
+  if (isMobile()) {
+    showStep(4);
+    requestPermissions();
+  } else {
+    showStep(3);
+    generateQR();
+  }
+});
+
+document.getElementById('continueOnMobileBtn')?.addEventListener('click', () => {
+  showStep(4);
+  requestPermissions();
+});
+
+// ============================================
+// PERMISOS DE CÁMARA
+// ============================================
+
+async function requestPermissions() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' },
+      audio: false 
+    });
+    // No mostramos el preview aquí, solo pedimos permiso
+  } catch (err) {
+    console.error('Permission error:', err);
+    // Si falla, igual permitimos subir archivo
+  }
+}
+
+// ============================================
+// STEP 4: DNI FRENTE
+// ============================================
+
+const dniFrontArea = document.getElementById('dniFrontArea');
+const dniFrontInput = document.getElementById('dniFrontInput');
+const dniFrontPreview = document.getElementById('dniFrontPreview');
+const dniFrontUploadBtn = document.getElementById('dniFrontUploadBtn');
+const dniFrontCaptureBtn = document.getElementById('dniFrontCaptureBtn');
+
+dniFrontArea?.addEventListener('click', () => dniFrontInput.click());
+dniFrontUploadBtn?.addEventListener('click', () => dniFrontInput.click());
+dniFrontCaptureBtn?.addEventListener('click', () => {
+  dniFrontInput.removeAttribute('capture');
+  dniFrontInput.click();
+});
+
+dniFrontInput?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    files.dniFront = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      dniFrontPreview.src = e.target.result;
+      dniFrontPreview.classList.add('show');
+      dniFrontArea.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+document.getElementById('nextDniFrontBtn')?.addEventListener('click', () => {
+  if (!files.dniFront) {
+    alert('Por favor, subí una foto del frente de tu DNI');
+    return;
+  }
+  showStep(5);
+});
+
+document.getElementById('backDniFrontBtn')?.addEventListener('click', () => {
+  showStep(2);
+});
+
+// ============================================
+// STEP 5: DNI DORSO
+// ============================================
+
+const dniBackArea = document.getElementById('dniBackArea');
+const dniBackInput = document.getElementById('dniBackInput');
+const dniBackPreview = document.getElementById('dniBackPreview');
+const dniBackUploadBtn = document.getElementById('dniBackUploadBtn');
+const dniBackCaptureBtn = document.getElementById('dniBackCaptureBtn');
+
+dniBackArea?.addEventListener('click', () => dniBackInput.click());
+dniBackUploadBtn?.addEventListener('click', () => dniBackInput.click());
+dniBackCaptureBtn?.addEventListener('click', () => {
+  dniBackInput.removeAttribute('capture');
+  dniBackInput.click();
+});
+
+dniBackInput?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    files.dniBack = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      dniBackPreview.src = e.target.result;
+      dniBackPreview.classList.add('show');
+      dniBackArea.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+document.getElementById('nextDniBackBtn')?.addEventListener('click', () => {
+  if (!files.dniBack) {
+    alert('Por favor, subí una foto del dorso de tu DNI');
+    return;
+  }
+  showStep(6);
+});
+
+document.getElementById('backDniBackBtn')?.addEventListener('click', () => {
+  showStep(4);
+});
+
+// ============================================
+// STEP 6: VIDEO INTRO
+// ============================================
+
+document.getElementById('nextVideoIntroBtn')?.addEventListener('click', () => {
+  showStep(7);
+});
+
+document.getElementById('backVideoIntroBtn')?.addEventListener('click', () => {
+  showStep(5);
+});
+
+// ============================================
+// STEP 7: PERMISOS
+// ============================================
+
+document.getElementById('okPermissionsBtn')?.addEventListener('click', async () => {
+  try {
+    // Intentar obtener cámara frontal para video
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'user' },
+      audio: true 
+    });
+    
+    // Mostrar preview
+    const preview = document.getElementById('cameraPreview');
+    preview.srcObject = mediaStream;
+    preview.classList.add('active');
+    
+    showStep(8);
+  } catch (err) {
+    console.error('Camera error:', err);
+    alert('No se pudo acceder a la cámara. Por favor, verificá los permisos del navegador.');
+  }
+});
+
+// ============================================
+// STEP 8: GRABAR VIDEO
+// ============================================
+
+const recordBtn = document.getElementById('recordBtn');
+const stopBtn = document.getElementById('stopBtn');
+const recordingIndicator = document.getElementById('recordingIndicator');
+const videoPreview = document.getElementById('videoPreview');
+
+recordBtn?.addEventListener('click', () => {
+  if (!mediaStream) return;
+
+  recordedChunks = [];
+  
+  const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+  try {
+    mediaRecorder = new MediaRecorder(mediaStream, options);
+  } catch (e) {
+    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm' });
+  }
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = () => {
+    recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+    files.lifeProofVideo = recordedBlob;
+    
+    // Mostrar preview
+    const url = URL.createObjectURL(recordedBlob);
+    videoPreview.src = url;
+    videoPreview.classList.add('show');
+    
+    // Detener cámara
+    stopCamera();
+  };
+
+  mediaRecorder.start();
+  
+  // UI
+  recordBtn.classList.add('recording');
+  stopBtn.classList.add('show');
+  recordingIndicator.classList.add('show');
+});
+
+stopBtn?.addEventListener('click', () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+  }
+  
+  // UI
+  recordBtn.classList.remove('recording');
+  stopBtn.classList.remove('show');
+  recordingIndicator.classList.remove('show');
+});
+
+function stopCamera() {
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(track => track.stop());
+    mediaStream = null;
+  }
+}
+
+document.getElementById('nextRecordBtn')?.addEventListener('click', () => {
+  if (!files.lifeProofVideo) {
+    alert('Por favor, grabá un video de prueba de vida');
+    return;
+  }
+  showStep(9);
+  // Reabrir cámara para tomar foto de tarjeta
+  reopenCamera();
+});
+
+document.getElementById('backRecordBtn')?.addEventListener('click', () => {
+  stopCamera();
+  showStep(6);
+});
+
+// ============================================
+// STEP 9: FOTO TARJETA
+// ============================================
+
+async function reopenCamera() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' },
+      audio: false 
+    });
+  } catch (err) {
+    console.error('Camera error:', err);
+  }
+}
+
+const cardArea = document.getElementById('cardArea');
+const cardInput = document.getElementById('cardInput');
+const cardPreview = document.getElementById('cardPreview');
+const cardUploadBtn = document.getElementById('cardUploadBtn');
+const cardCaptureBtn = document.getElementById('cardCaptureBtn');
+
+cardArea?.addEventListener('click', () => cardInput.click());
+cardUploadBtn?.addEventListener('click', () => cardInput.click());
+cardCaptureBtn?.addEventListener('click', () => {
+  cardInput.removeAttribute('capture');
+  cardInput.click();
+});
+
+cardInput?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    files.cardPhoto = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      cardPreview.src = e.target.result;
+      cardPreview.classList.add('show');
+      cardArea.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
+  if (!files.cardPhoto) {
+    alert('Por favor, subí una foto de tu tarjeta');
+    return;
+  }
+  
+  // Subir todos los archivos
+  await uploadFiles();
+  showStep(10);
+});
+
+document.getElementById('backCardBtn')?.addEventListener('click', () => {
+  showStep(8);
+  // Reabrir cámara de video
+  reopenCameraForVideo();
+});
+
+async function reopenCameraForVideo() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'user' },
+      audio: true 
+    });
+    const preview = document.getElementById('cameraPreview');
+    preview.srcObject = mediaStream;
+    preview.classList.add('active');
+  } catch (err) {
+    console.error('Camera error:', err);
+  }
+}
+
+// ============================================
+// SUBIR ARCHIVOS
+// ============================================
+
+async function uploadFiles() {
+  const code = verificationData.unique_code;
+
+  // Subir archivos y obtener URLs
+  let dniFrontUrl = null;
+  let dniBackUrl = null;
+  let videoUrl = null;
+  let cardUrl = null;
+
+  if (files.dniFront) {
+    dniFrontUrl = await uploadFile(files.dniFront, `${code}/dni-front.jpg`);
+  }
+
+  if (files.dniBack) {
+    dniBackUrl = await uploadFile(files.dniBack, `${code}/dni-back.jpg`);
+  }
+
+  if (files.lifeProofVideo) {
+    videoUrl = await uploadFile(files.lifeProofVideo, `${code}/life-proof.webm`);
+  }
+
+  if (files.cardPhoto) {
+    cardUrl = await uploadFile(files.cardPhoto, `${code}/card-photo.jpg`);
+  }
+
+  // Usar la función segura para actualizar el registro (sin login)
+  const { data, error } = await supabaseClient
+    .rpc('update_verification_by_code', {
+      p_code: code,
+      p_dni_front_url: dniFrontUrl,
+      p_dni_back_url: dniBackUrl,
+      p_life_proof_video_url: videoUrl,
+      p_card_photo_url: cardUrl
+    });
+
+  if (error) {
+    console.error('Error updating verification:', error);
+    alert('Error al guardar la verificación. Por favor, intentá de nuevo.');
+  }
+}
+
+async function uploadFile(file, path) {
+  try {
+    const { data, error } = await supabaseClient.storage
+      .from(SUPABASE_CONFIG.storageBucket)
+      .upload(path, file, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+
+    // Obtener URL pública
+    const { data: urlData } = supabaseClient.storage
+      .from(SUPABASE_CONFIG.storageBucket)
+      .getPublicUrl(path);
+
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error('Upload error:', err);
+    return null;
+  }
+}
+
+// ============================================
+// INICIAR
+// ============================================
+
+init();

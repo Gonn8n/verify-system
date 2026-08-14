@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify - Panel Admin</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    body {
+      background: var(--color-bg);
+    }
+    .admin-header {
+      background: var(--color-white);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .admin-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .admin-logo-circle {
+      width: 36px;
+      height: 36px;
+      background: var(--color-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-logo-circle span {
+      color: white;
+      font-weight: 800;
+      font-size: 0.875rem;
+    }
+    .admin-logo-text {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .admin-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .admin-user-email {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+    .btn-logout {
+      background: none;
+      border: none;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      padding: 8px;
+      font-size: 0.8rem;
+    }
+    .btn-logout:hover {
+      color: var(--color-primary);
+    }
+    .admin-content {
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .admin-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .filter-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--color-white);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-sm);
+    }
+    .filter-tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--color-text-secondary);
+    }
+    .filter-tab.active {
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+    .filter-tab:hover:not(.active) {
+      background: var(--color-bg);
+    }
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      flex: 1;
+      background: var(--color-white);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card.pending .stat-number { color: var(--color-pending); }
+    .stat-card.review .stat-number { color: var(--color-review); }
+    .stat-card.approved .stat-number { color: var(--color-approved); }
+    .stat-card.rejected .stat-number { color: var(--color-rejected); }
+    .admin-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-secondary);
+    }
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+    /* Modal Nueva Verificación */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal {
+      background: var(--color-white);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      margin: 0;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+    }
+    .modal-body {
+      padding: 24px;
+    }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .generated-link {
+      background: var(--color-bg);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-family: monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      margin: 12px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .generated-link-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .link-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .link-actions .btn {
+      padding: 8px 12px;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="admin-logo">
+      <div class="admin-logo-circle"><span>V</span></div>
+      <span class="admin-logo-text">Verify</span>
+    </div>
+    <div class="admin-user">
+      <span class="admin-user-email" id="userEmail"></span>
+      <button class="btn-logout" id="logoutBtn">Salir</button>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="admin-content">
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card pending">
+        <div class="stat-number" id="statPending">0</div>
+        <div class="stat-label">Pendientes</div>
+      </div>
+      <div class="stat-card review">
+        <div class="stat-number" id="statReview">0</div>
+        <div class="stat-label">Revisión</div>
+      </div>
+      <div class="stat-card approved">
+        <div class="stat-number" id="statApproved">0</div>
+        <div class="stat-label">Aprobados</div>
+      </div>
+      <div class="stat-card rejected">
+        <div class="stat-number" id="statRejected">0</div>
+        <div class="stat-label">Rechazados</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">Todos</button>
+        <button class="filter-tab" data-filter="pending">Pendientes</button>
+        <button class="filter-tab" data-filter="in_review">Revisión</button>
+        <button class="filter-tab" data-filter="approved">Aprobados</button>
+        <button class="filter-tab" data-filter="rejected">Rechazados</button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="newVerificationBtn">+ Nuevo</button>
+    </div>
+
+    <!-- List -->
+    <div class="admin-list" id="verificationList">
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <p>Cargá una nueva verificación para comenzar</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Nueva Verificación -->
+  <div class="modal-overlay hidden" id="newModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Nueva Verificación</h2>
+        <button class="modal-close" id="closeNewModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="newVerificationForm">
+          <div class="form-group">
+            <label class="form-label">Nombre</label>
+            <input type="text" class="form-input" id="firstName" placeholder="Nombre" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apellido</label>
+            <input type="text" class="form-input" id="lastName" placeholder="Apellido" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DNI</label>
+            <input type="text" class="form-input" id="dni" placeholder="Número de DNI" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="clientEmail" placeholder="email@cliente.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="tel" class="form-input" id="phone" placeholder="+54 11 1234-5678" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Últimos 4 dígitos de tarjeta (opcional)</label>
+            <input type="text" class="form-input" id="cardLastFour" placeholder="1234" maxlength="4" pattern="[0-9]{4}">
+          </div>
+          
+          <div class="generated-link hidden" id="generatedLink">
+            <span class="generated-link-text" id="linkText"></span>
+            <div class="link-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="copyLinkBtn">Copiar</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="emailLinkBtn">Email</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="whatsappLinkBtn">WhatsApp</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelNewBtn">Cancelar</button>
+        <button class="btn btn-primary" id="saveNewBtn">Crear Verificación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle de Verificación -->
+  <div class="detail-overlay hidden" id="detailOverlay">
+    <div class="detail-panel">
+      <div class="detail-header">
+        <h2 id="detailTitle">Detalle</h2>
+        <button class="detail-close" id="closeDetail">&times;</button>
+      </div>
+      
+      <div class="detail-section">
+        <div class="detail-section-title">Información del Cliente</div>
+        <div class="detail-row">
+          <span class="detail-label">Nombre</span>
+          <span class="detail-value" id="detailName">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">DNI</span>
+          <span class="detail-value" id="detailDni">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Email</span>
+          <span class="detail-value" id="detailEmail">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Teléfono</span>
+          <span class="detail-value" id="detailPhone">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Tarjeta (últimos 4)</span>
+          <span class="detail-value" id="detailCard">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Código</span>
+          <span class="detail-value" id="detailCode" style="font-family: monospace;">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Estado</span>
+          <span id="detailStatusBadge">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Creado</span>
+          <span class="detail-value" id="detailCreated">-</span>
+        </div>
+      </div>
+
+      <!-- Documentos subidos -->
+      <div class="detail-section" id="detailDocuments">
+        <div class="detail-section-title">Documentos</div>
+        
+        <div class="detail-media">
+          <div class="detail-media-label">DNI Frente</div>
+          <div class="detail-media-preview" id="detailDniFront">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+
+        <div class="detail-media">
+          <div class="detail-media-label">DNI Dorso</div>
+          <div class="detail-media-preview" id="detailDniBack">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+
+        <div class="detail-media">
+          <div class="detail-media-label">Prueba de Vida (Video)</div>
+          <div class="detail-media-preview" id="detailVideo">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+
+        <div class="detail-media">
+          <div class="detail-media-label">Foto Tarjeta</div>
+          <div class="detail-media-preview" id="detailCardPhoto">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones de estado -->
+      <div class="detail-section">
+        <div class="detail-section-title">Cambiar Estado</div>
+        <div class="action-buttons">
+          <div class="action-row">
+            <button class="btn btn-sm" style="background: var(--color-pending); color: white;" data-status="pending">Pendiente</button>
+            <button class="btn btn-sm" style="background: var(--color-review); color: white;" data-status="in_review">En Revisión</button>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-sm" style="background: var(--color-approved); color: white;" data-status="approved">Aprobado</button>
+            <button class="btn btn-sm" style="background: var(--color-rejected); color: white;" data-status="rejected">Rechazado</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compartir link -->
+      <div class="share-section">
+        <div class="detail-section-title">Link de Verificación</div>
+        <div class="generated-link">
+          <span class="generated-link-text" id="detailLink">-</span>
+        </div>
+        <div class="share-buttons">
+          <button class="btn btn-secondary btn-sm" id="detailCopyBtn">Copiar</button>
+          <button class="btn btn-secondary btn-sm" id="detailEmailBtn">Email</button>
+          <button class="btn btn-secondary btn-sm" id="detailWhatsappBtn">WhatsApp</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>
