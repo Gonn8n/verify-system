@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS verifications (
   dni_back_url TEXT,
   life_proof_video_url TEXT,
   card_photo_url TEXT,
+  latitude FLOAT,
+  longitude FLOAT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -70,6 +72,8 @@ RETURNS TABLE (
   dni_back_url TEXT,
   life_proof_video_url TEXT,
   card_photo_url TEXT,
+  latitude FLOAT,
+  longitude FLOAT,
   created_at TIMESTAMPTZ
 )
 LANGUAGE plpgsql
@@ -80,7 +84,7 @@ BEGIN
   SELECT v.id, v.unique_code, v.first_name, v.last_name, v.dni,
          v.email, v.phone, v.card_last_four, v.status,
          v.dni_front_url, v.dni_back_url, v.life_proof_video_url,
-         v.card_photo_url, v.created_at
+         v.card_photo_url, v.latitude, v.longitude, v.created_at
   FROM verifications v
   WHERE v.unique_code = code;
 END;
@@ -92,7 +96,9 @@ CREATE OR REPLACE FUNCTION update_verification_by_code(
   p_dni_front_url TEXT DEFAULT NULL,
   p_dni_back_url TEXT DEFAULT NULL,
   p_life_proof_video_url TEXT DEFAULT NULL,
-  p_card_photo_url TEXT DEFAULT NULL
+  p_card_photo_url TEXT DEFAULT NULL,
+  p_latitude FLOAT DEFAULT NULL,
+  p_longitude FLOAT DEFAULT NULL
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -104,6 +110,8 @@ BEGIN
       dni_back_url = COALESCE(p_dni_back_url, dni_back_url),
       life_proof_video_url = COALESCE(p_life_proof_video_url, life_proof_video_url),
       card_photo_url = COALESCE(p_card_photo_url, card_photo_url),
+      latitude = COALESCE(p_latitude, latitude),
+      longitude = COALESCE(p_longitude, longitude),
       updated_at = NOW()
   WHERE unique_code = p_code;
 END;

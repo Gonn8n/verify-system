@@ -17,6 +17,7 @@ let mediaStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
+let userLocation = null;
 
 // Archivos subidos
 let files = {
@@ -94,18 +95,50 @@ function showError(message) {
 }
 
 function showCompletedMessage() {
+  const statusConfig = {
+    pending: {
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+      bg: '#FEF3C7',
+      color: '#F59E0B',
+      title: 'Validación en proceso.',
+      msg: 'Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.'
+    },
+    in_review: {
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+      bg: '#DBEAFE',
+      color: '#3B82F6',
+      title: 'Validación en revisión.',
+      msg: 'Tu información está siendo revisada por nuestro equipo. Recibirás un email con el resultado pronto.'
+    },
+    approved: {
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+      bg: '#D1FAE5',
+      color: '#10B981',
+      title: '¡Compra aprobada!',
+      msg: 'Tu verificación fue aprobada exitosamente. Gracias por completar el proceso.'
+    },
+    rejected: {
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+      bg: '#FEE2E2',
+      color: '#EF4444',
+      title: 'Compra rechazada.',
+      msg: 'Lamentablemente no pudimos verificar tu identidad. Si creés que es un error, contactá al soporte del comercio.'
+    }
+  };
+
+  const s = statusConfig[verificationData.status] || statusConfig.pending;
+
   document.querySelector('.verify-content').innerHTML = `
     <div class="step-container active">
       <div class="intro-card">
         <div class="success-container">
-          <div class="success-icon-large">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
+          <div class="success-icon-large" style="background: ${s.bg};">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${s.color}" stroke-width="2" style="width:50px;height:50px;">
+              ${s.icon}
             </svg>
           </div>
-          <h1>Validación en proceso.</h1>
-          <p>Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.</p>
+          <h1>${s.title}</h1>
+          <p>${s.msg}</p>
         </div>
       </div>
     </div>
@@ -174,11 +207,28 @@ async function requestPermissions() {
       video: { facingMode: 'environment' },
       audio: false 
     });
-    // No mostramos el preview aquí, solo pedimos permiso
   } catch (err) {
     console.error('Permission error:', err);
-    // Si falla, igual permitimos subir archivo
   }
+
+  // Pedir geolocalización (opcional)
+  requestGeolocation();
+}
+
+function requestGeolocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      userLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
+    },
+    (err) => {
+      console.log('Geolocation not available or denied:', err.message);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+  );
 }
 
 // ============================================
@@ -285,16 +335,17 @@ document.getElementById('backVideoIntroBtn')?.addEventListener('click', () => {
 
 document.getElementById('okPermissionsBtn')?.addEventListener('click', async () => {
   try {
-    // Intentar obtener cámara frontal para video
     mediaStream = await navigator.mediaDevices.getUserMedia({ 
       video: { facingMode: 'user' },
       audio: true 
     });
     
-    // Mostrar preview
     const preview = document.getElementById('cameraPreview');
     preview.srcObject = mediaStream;
     preview.classList.add('active');
+    
+    // Pedir geolocalización junto con cámara
+    requestGeolocation();
     
     showStep(8);
   } catch (err) {
@@ -402,13 +453,14 @@ async function reopenCamera() {
 const cardArea = document.getElementById('cardArea');
 const cardInput = document.getElementById('cardInput');
 const cardPreview = document.getElementById('cardPreview');
-const cardUploadBtn = document.getElementById('cardUploadBtn');
 const cardCaptureBtn = document.getElementById('cardCaptureBtn');
 
-cardArea?.addEventListener('click', () => cardInput.click());
-cardUploadBtn?.addEventListener('click', () => cardInput.click());
+cardArea?.addEventListener('click', () => {
+  cardInput.setAttribute('capture', 'environment');
+  cardInput.click();
+});
 cardCaptureBtn?.addEventListener('click', () => {
-  cardInput.removeAttribute('capture');
+  cardInput.setAttribute('capture', 'environment');
   cardInput.click();
 });
 
@@ -493,7 +545,9 @@ async function uploadFiles() {
       p_dni_front_url: dniFrontUrl,
       p_dni_back_url: dniBackUrl,
       p_life_proof_video_url: videoUrl,
-      p_card_photo_url: cardUrl
+      p_card_photo_url: cardUrl,
+      p_latitude: userLocation?.latitude || null,
+      p_longitude: userLocation?.longitude || null
     });
 
   if (error) {

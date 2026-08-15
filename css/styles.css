@@ -879,3 +879,136 @@ p {
   color: var(--color-primary);
   font-weight: 500;
 }
+
+/* ---- Card Action Buttons ---- */
+.admin-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.card-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.card-action-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ---- Image Preview Container ---- */
+.image-preview-container {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.image-preview-container img {
+  width: 100%;
+  display: block;
+  cursor: pointer;
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.media-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.media-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.media-action-btn:hover {
+  background: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+/* ---- Image Modal ---- */
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.image-modal-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.image-modal-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: var(--color-white);
+  color: var(--color-text);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.image-modal-download:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
