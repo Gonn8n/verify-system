@@ -86,6 +86,29 @@ BEGIN
 END;
 $$;
 
+-- Función para que el cliente actualice su verificación (sin login)
+CREATE OR REPLACE FUNCTION update_verification_by_code(
+  p_code TEXT,
+  p_dni_front_url TEXT DEFAULT NULL,
+  p_dni_back_url TEXT DEFAULT NULL,
+  p_life_proof_video_url TEXT DEFAULT NULL,
+  p_card_photo_url TEXT DEFAULT NULL
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE verifications
+  SET dni_front_url = COALESCE(p_dni_front_url, dni_front_url),
+      dni_back_url = COALESCE(p_dni_back_url, dni_back_url),
+      life_proof_video_url = COALESCE(p_life_proof_video_url, life_proof_video_url),
+      card_photo_url = COALESCE(p_card_photo_url, card_photo_url),
+      updated_at = NOW()
+  WHERE unique_code = p_code;
+END;
+$$;
+
 -- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -106,7 +129,7 @@ CREATE TRIGGER update_verifications_updated_at
 
 -- Bucket para archivos de verificación (DNI, videos, tarjetas)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('verification-files', 'verification-files', false)
+VALUES ('verification-files', 'verification-files', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Policy: Admin puede subir archivos

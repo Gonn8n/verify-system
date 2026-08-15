@@ -428,7 +428,8 @@ async function sendStatusEmail(verificationId, status) {
         email: verification.email,
         firstName: verification.first_name,
         status: status,
-        commerceName: SUPABASE_CONFIG.commerceName
+        commerceName: SUPABASE_CONFIG.commerceName,
+        uniqueCode: verification.unique_code
       })
     });
 
