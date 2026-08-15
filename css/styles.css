@@ -1012,3 +1012,207 @@ p {
   background: var(--color-primary);
   color: var(--color-white);
 }
+
+/* ---- Analysis Section ---- */
+.analysis-score-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 20px 0;
+  justify-content: center;
+}
+
+.analysis-score-ring {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 6px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.analysis-score-ring.high {
+  border-color: var(--color-approved);
+}
+
+.analysis-score-ring.medium {
+  border-color: var(--color-pending);
+}
+
+.analysis-score-ring.low {
+  border-color: var(--color-rejected);
+}
+
+.score-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.score-label {
+  font-size: 0.65rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rec-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rec-low {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.rec-medium {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.rec-high {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.analysis-scores {
+  margin: 16px 0;
+}
+
+.analysis-score-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.analysis-score-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  min-width: 100px;
+}
+
+.score-bar-bg {
+  flex: 1;
+  background: var(--color-border);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.score-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  background: var(--color-approved);
+}
+
+.score-bar.medium {
+  background: var(--color-pending);
+}
+
+.score-bar.low {
+  background: var(--color-rejected);
+}
+
+.analysis-score-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 35px;
+  text-align: right;
+}
+
+.analysis-data-match,
+.analysis-fraud-signals {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.analysis-data-match h4,
+.analysis-fraud-signals h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.match-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.match-label {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.match-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.match-ok {
+  color: var(--color-approved);
+}
+
+.match-warn {
+  color: var(--color-pending);
+}
+
+.match-error {
+  color: var(--color-rejected);
+}
+
+.fraud-signal {
+  background: #FEF2F2;
+  border-left: 3px solid var(--color-rejected);
+  padding: 10px 12px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 8px;
+}
+
+.fraud-signal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.fraud-signal-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-rejected);
+}
+
+.fraud-signal-confidence {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.fraud-signal-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+#analyzeBtn {
+  width: 100%;
+  margin-bottom: 16px;
+}

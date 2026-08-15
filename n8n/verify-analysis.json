@@ -1,0 +1,290 @@
+{
+  "id": "verify-document-analysis",
+  "name": "Verify - Análisis Documental AI",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "verify-analysis",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "verify",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "get-verification",
+      "name": "Get Verification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{ $json.body.verification_id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-dni-front",
+      "name": "Get DNI Front",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $json[0].unique_code }}/dni-front.jpg",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "get-dni-back",
+      "name": "Get DNI Back",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 350],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json[0].unique_code }}/dni-back.jpg",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "get-life-proof",
+      "name": "Get Life Proof",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 500],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json[0].unique_code }}/life-proof.webm",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "convert-to-base64",
+      "name": "Convert to Base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const verification = $('Get Verification').item.json[0];\nconst dniFrontBinary = $('Get DNI Front').item.binary.data;\nconst dniBackBinary = $('Get DNI Back').item.binary.data;\nconst lifeProofBinary = $('Get Life Proof').item.binary.data;\n\n// Convert binary to base64\nconst dniFrontBase64 = dniFrontBinary.data;\nconst dniBackBase64 = dniBackBinary.data;\nconst lifeProofBase64 = lifeProofBinary.data;\n\n// Get MIME types\nconst dniFrontMime = dniFrontBinary.mimeType || 'image/jpeg';\nconst dniBackMime = dniBackBinary.mimeType || 'image/jpeg';\nconst lifeProofMime = lifeProofBinary.mimeType || 'video/webm';\n\nreturn [{\n  json: {\n    verification_id: verification.id,\n    unique_code: verification.unique_code,\n    first_name: verification.first_name,\n    last_name: verification.last_name,\n    dni: verification.dni,\n    email: verification.email,\n    card_last_four: verification.card_last_four,\n    dni_front_base64: `data:${dniFrontMime};base64,${dniFrontBase64}`,\n    dni_back_base64: `data:${dniBackMime};base64,${dniBackBase64}`,\n    life_proof_base64: `data:${lifeProofMime};base64,${lifeProofBase64}`\n  }\n}];"
+      }
+    },
+    {
+      "id": "analyze-openai",
+      "name": "Analyze with OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"gpt-4o\",\n  messages: [\n    {\n      role: \"system\",\n      content: \"Sos un analista de documentos de identidad argentinos (DNI). Analizá las 3 imágenes proporcionadas (frente del DNI, dorso del DNI, y prueba de video) y retorná UNICAMENTE un JSON válido sin texto adicional.\"\n    },\n    {\n      role: \"user\",\n      content: [\n        {\n          type: \"text\",\n          text: \"Analizá estas 3 imágenes de un documento de identidad y una prueba de vida.\\n\\nDatos del operador para comparar:\\n- Nombre: {{ $json.first_name }} {{ $json.last_name }}\\n- DNI: {{ $json.dni }}\\n- Últimos 4 dígitos de tarjeta: {{ $json.card_last_four || 'No proporcionado' }}\\n\\nRetorná un JSON con esta estructura exacta:\\n{\\n  \\\"extracted_data\\\": {\\n    \\\"full_name\\\": \\\"nombre completo extraído del DNI\\\",\\n    \\\"dni_number\\\": \\\"número de documento\\\",\\n    \\\"birth_date\\\": \\\"fecha de nacimiento\\\",\\n    \\\"nationality\\\": \\\"nacionalidad\\\"\\n  },\\n  \\\"dni_front\\\": {\\n    \\\\": 0-100,\\n    \\\"findings\\\": [\\\"hallazgo1\\\", \\\"hallazgo2\\\"]\\n  },\\n  \\\"dni_back\\\": {\\n    \\\"score\\\": 0-100,\\n    \\\"findings\\\": [\\\"hallazgo1\\\"]\\n  },\\n  \\\"life_proof\\\": {\\n    \\\"score\\\": 0-100,\\n    \\\"findings\\\": [\\\"hallazgo1\\\"]\\n  },\\n  \\\"overall_score\\\": 0-100,\\n  \\\"fraud_signals\\\": [\\n    {\\n      \\\"signal\\\": \\\"font_mismatch|edge_tampering|photo_overlay|resolution_anomaly|screen_capture|text_inconsistency|blur_anomaly\\\",\\n      \\\"confidence\\\": 0-100,\\n      \\\"description\\\": \\\"descripción del hallazgo\\\"\\n    }\\n  ],\\n  \\\"data_match\\\": {\\n    \\\"name_match\\\": true/false,\\n    \\\"dni_match\\\": true/false,\\n    \\\"card_match\\\": true/false\\n  },\\n  \\\"data_consistency\\\": {\\n    \\\"front_back_match\\\": true/false,\\n    \\\"text_readable\\\": true/false,\\n    \\\"document_intact\\\": true/false\\n  },\\n  \\\"recommendation\\\": \\\"low_risk|medium_risk|high_risk\\\"\\n}\\n\\nSeñales de fraude a buscar:\\n- Fonts diferentes en campos del mismo documento\\n- Bordes irregulares o recortes sospechosos\\n- Sombras o reflejos anómalos\\n- Datos que no coinciden entre frente y dorso\\n- Calidad inconsistente\\n- Texto editado o superpuesto\\n- Imágenes de pantalla\\n- DNI parece fotocopia\\n\\nIMPORTANTE: Retorná SOLO el JSON, sin texto adicional.\"\n        },\n        {\n          type: \"image_url\",\n          image_url: {\n            url: $json.dni_front_base64,\n            detail: \"high\"\n          }\n        },\n        {\n          type: \"image_url\",\n          image_url: {\n            url: $json.dni_back_base64,\n            detail: \"high\"\n          }\n        }\n      ]\n    }\n  ],\n  max_tokens: 2000,\n  response_format: { type: \"json_object\" }\n}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "parse-response",
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const openaiResponse = $input.first().json;\nconst verificationData = $('Convert to Base64').item.json;\n\ntry {\n  const content = openaiResponse.choices[0].message.content;\n  const parsed = JSON.parse(content);\n  \n  // Compare extracted data with operator data\n  const extractedName = (parsed.extracted_data?.full_name || '').toLowerCase().trim();\n  const operatorName = (verificationData.first_name + ' ' + verificationData.last_name).toLowerCase().trim();\n  const nameMatch = extractedName.includes(operatorName) || operatorName.includes(extractedName);\n  \n  const extractedDni = (parsed.extracted_data?.dni_number || '').replace(/[^0-9]/g, '');\n  const operatorDni = (verificationData.dni || '').replace(/[^0-9]/g, '');\n  const dniMatch = extractedDni === operatorDni;\n  \n  // Calculate overall risk level\n  const overallScore = parsed.overall_score || 0;\n  let recommendation = 'low_risk';\n  if (overallScore < 50) recommendation = 'high_risk';\n  else if (overallScore < 75) recommendation = 'medium_risk';\n  \n  return [{\n    json: {\n      verification_id: verificationData.verification_id,\n      extracted_name: parsed.extracted_data?.full_name || '',\n      extracted_dni: parsed.extracted_data?.dni_number || '',\n      extracted_birth_date: parsed.extracted_data?.birth_date || '',\n      dni_front_score: parsed.dni_front?.score || 0,\n      dni_back_score: parsed.dni_back?.score || 0,\n      life_proof_score: parsed.life_proof?.score || 0,\n      overall_score: overallScore,\n      fraud_signals: parsed.fraud_signals || [],\n      data_match: {\n        name_match: nameMatch,\n        dni_match: dniMatch,\n        card_match: parsed.data_match?.card_match || false,\n        operator_name: verificationData.first_name + ' ' + verificationData.last_name,\n        extracted_name: parsed.extracted_data?.full_name || '',\n        operator_dni: verificationData.dni,\n        extracted_dni: parsed.extracted_data?.dni_number || ''\n      },\n      data_consistency: parsed.data_consistency || {},\n      recommendation: recommendation,\n      raw_response: openaiResponse,\n      analyzed_at: new Date().toISOString()\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      verification_id: verificationData.verification_id,\n      extracted_name: '',\n      extracted_dni: '',\n      extracted_birth_date: '',\n      dni_front_score: 0,\n      dni_back_score: 0,\n      life_proof_score: 0,\n      overall_score: 0,\n      fraud_signals: [{ signal: 'analysis_error', confidence: 100, description: error.message }],\n      data_match: {},\n      data_consistency: {},\n      recommendation: 'medium_risk',\n      raw_response: openaiResponse,\n      analyzed_at: new Date().toISOString()\n    }\n  }];\n}"
+      }
+    },
+    {
+      "id": "save-results",
+      "name": "Save Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verification_analysis",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  verification_id: $json.verification_id,\n  extracted_name: $json.extracted_name,\n  extracted_dni: $json.extracted_dni,\n  extracted_birth_date: $json.extracted_birth_date,\n  dni_front_score: $json.dni_front_score,\n  dni_back_score: $json.dni_back_score,\n  life_proof_score: $json.life_proof_score,\n  overall_score: $json.overall_score,\n  fraud_signals: $json.fraud_signals,\n  data_match: $json.data_match,\n  recommendation: $json.recommendation,\n  raw_response: $json.raw_response,\n  analyzed_at: $json.analyzed_at\n}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "respond-webhook",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  verification_id: $json.verification_id,\n  analysis: {\n    overall_score: $json.overall_score,\n    dni_front_score: $json.dni_front_score,\n    dni_back_score: $json.dni_back_score,\n    life_proof_score: $json.life_proof_score,\n    recommendation: $json.recommendation,\n    fraud_signals: $json.fraud_signals,\n    data_match: $json.data_match,\n    extracted_data: {\n      name: $json.extracted_name,\n      dni: $json.extracted_dni,\n      birth_date: $json.extracted_birth_date\n    }\n  }\n}) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Get Verification", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Verification": {
+      "main": [
+        [
+          { "node": "Get DNI Front", "type": "main", "index": 0 },
+          { "node": "Get DNI Back", "type": "main", "index": 0 },
+          { "node": "Get Life Proof", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get DNI Front": {
+      "main": [
+        [
+          { "node": "Convert to Base64", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get DNI Back": {
+      "main": [
+        [
+          { "node": "Convert to Base64", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Life Proof": {
+      "main": [
+        [
+          { "node": "Convert to Base64", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Convert to Base64": {
+      "main": [
+        [
+          { "node": "Analyze with OpenAI", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Analyze with OpenAI": {
+      "main": [
+        [
+          { "node": "Parse Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          { "node": "Save Results", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Save Results": {
+      "main": [
+        [
+          { "node": "Respond", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

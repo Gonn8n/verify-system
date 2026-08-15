@@ -411,6 +411,58 @@
         </div>
       </div>
 
+      <!-- Análisis AI -->
+      <div class="detail-section" id="analysisSection">
+        <div class="detail-section-title">Análisis AI</div>
+        
+        <button class="btn btn-primary btn-sm" id="analyzeBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          Analizar con AI
+        </button>
+        
+        <div id="analysisResults" class="hidden">
+          <!-- Score circular -->
+          <div class="analysis-score-container">
+            <div class="analysis-score-ring" id="analysisScoreRing">
+              <span class="score-value" id="analysisScoreValue">0</span>
+              <span class="score-label">Confianza</span>
+            </div>
+            <div class="analysis-recommendation" id="analysisRecommendation"></div>
+          </div>
+          
+          <!-- Scores por documento -->
+          <div class="analysis-scores">
+            <div class="analysis-score-item">
+              <span class="analysis-score-label">DNI Frente</span>
+              <div class="score-bar-bg"><div class="score-bar" id="frontScore"></div></div>
+              <span class="analysis-score-pct" id="frontScoreText">0%</span>
+            </div>
+            <div class="analysis-score-item">
+              <span class="analysis-score-label">DNI Dorso</span>
+              <div class="score-bar-bg"><div class="score-bar" id="backScore"></div></div>
+              <span class="analysis-score-pct" id="backScoreText">0%</span>
+            </div>
+            <div class="analysis-score-item">
+              <span class="analysis-score-label">Prueba de Vida</span>
+              <div class="score-bar-bg"><div class="score-bar" id="lifeProofScore"></div></div>
+              <span class="analysis-score-pct" id="lifeProofScoreText">0%</span>
+            </div>
+          </div>
+          
+          <!-- Coincidencia de datos -->
+          <div class="analysis-data-match" id="dataMatchSection">
+            <h4>Coincidencia de Datos</h4>
+            <div id="dataMatchContent"></div>
+          </div>
+          
+          <!-- Señales de fraude -->
+          <div class="analysis-fraud-signals" id="fraudSignalsSection">
+            <h4>Señales de Alerta</h4>
+            <div id="fraudSignalsContent"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Acciones de estado -->
       <div class="detail-section">
         <div class="detail-section-title">Cambiar Estado</div>

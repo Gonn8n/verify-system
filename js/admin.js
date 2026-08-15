@@ -404,7 +404,13 @@ async function openDetail(id) {
     btn.onclick = () => updateStatus(btn.dataset.status);
   });
 
+  // Resetear análisis
+  document.getElementById('analysisResults').classList.add('hidden');
+
   detailOverlay.classList.remove('hidden');
+
+  // Cargar análisis existente
+  loadExistingAnalysis(id);
 }
 
 function renderMedia(containerId, url, type) {
@@ -576,6 +582,174 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// ============================================
+// ANÁLISIS AI
+// ============================================
+
+const N8N_WEBHOOK_URL = 'https://bot.anexaria.com/webhook/verify';
+
+async function analyzeVerification() {
+  if (!currentDetailId) return;
+
+  const btn = document.getElementById('analyzeBtn');
+  const results = document.getElementById('analysisResults');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> Analizando...';
+
+  try {
+    const response = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verification_id: currentDetailId })
+    });
+
+    if (!response.ok) throw new Error('Error en el análisis');
+
+    const result = await response.json();
+
+    if (result.success && result.analysis) {
+      renderAnalysis(result.analysis);
+      results.classList.remove('hidden');
+      showToast('Análisis completado');
+    } else {
+      throw new Error('Respuesta inválida');
+    }
+  } catch (err) {
+    console.error('Analysis error:', err);
+    showToast('Error al analizar: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Analizar con AI';
+  }
+}
+
+function renderAnalysis(analysis) {
+  // Score circular
+  const score = analysis.overall_score || 0;
+  const ring = document.getElementById('analysisScoreRing');
+  const scoreValue = document.getElementById('analysisScoreValue');
+  scoreValue.textContent = score;
+  ring.className = 'analysis-score-ring';
+  if (score >= 70) ring.classList.add('high');
+  else if (score >= 40) ring.classList.add('medium');
+  else ring.classList.add('low');
+
+  // Recomendación
+  const rec = document.getElementById('analysisRecommendation');
+  const recLabels = {
+    low_risk: { text: 'Bajo Riesgo', class: 'rec-low' },
+    medium_risk: { text: 'Riesgo Medio', class: 'rec-medium' },
+    high_risk: { text: 'Alto Riesgo', class: 'rec-high' }
+  };
+  const recData = recLabels[analysis.recommendation] || recLabels.medium_risk;
+  rec.innerHTML = `<span class="rec-badge ${recData.class}">${recData.text}</span>`;
+
+  // Scores por documento
+  setScoreBar('frontScore', 'frontScoreText', analysis.dni_front_score || 0);
+  setScoreBar('backScore', 'backScoreText', analysis.dni_back_score || 0);
+  setScoreBar('lifeProofScore', 'lifeProofScoreText', analysis.life_proof_score || 0);
+
+  // Data match
+  const dataMatch = analysis.data_match || {};
+  const dataMatchContent = document.getElementById('dataMatchContent');
+  dataMatchContent.innerHTML = `
+    <div class="match-row">
+      <span class="match-label">Nombre: <strong>${dataMatch.extracted_name || '-'}</strong></span>
+      <span class="match-status ${dataMatch.name_match ? 'match-ok' : 'match-error'}">
+        ${dataMatch.name_match ? '✓ Coincide' : '✗ No coincide'}
+      </span>
+    </div>
+    <div class="match-row">
+      <span class="match-label">DNI: <strong>${dataMatch.extracted_dni || '-'}</strong></span>
+      <span class="match-status ${dataMatch.dni_match ? 'match-ok' : 'match-error'}">
+        ${dataMatch.dni_match ? '✓ Coincide' : '✗ No coincide'}
+      </span>
+    </div>
+    <div class="match-row">
+      <span class="match-label">Tarjeta: <strong>${dataMatch.card_match ? 'Verificado' : 'No verificable'}</strong></span>
+      <span class="match-status ${dataMatch.card_match ? 'match-ok' : 'match-warn'}">
+        ${dataMatch.card_match ? '✓ Coincide' : '- Sin dato'}
+      </span>
+    </div>
+  `;
+
+  // Fraud signals
+  const signals = analysis.fraud_signals || [];
+  const fraudSection = document.getElementById('fraudSignalsSection');
+  const fraudContent = document.getElementById('fraudSignalsContent');
+
+  if (signals.length === 0) {
+    fraudSection.classList.add('hidden');
+  } else {
+    fraudSection.classList.remove('hidden');
+    fraudContent.innerHTML = signals.map(s => `
+      <div class="fraud-signal">
+        <div class="fraud-signal-header">
+          <span class="fraud-signal-name">${formatSignalName(s.signal)}</span>
+          <span class="fraud-signal-confidence">${s.confidence}%</span>
+        </div>
+        <div class="fraud-signal-desc">${s.description}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function setScoreBar(barId, textId, score) {
+  const bar = document.getElementById(barId);
+  const text = document.getElementById(textId);
+  bar.style.width = score + '%';
+  bar.className = 'score-bar';
+  if (score >= 70) bar.classList.add('high');
+  else if (score >= 40) bar.classList.add('medium');
+  else bar.classList.add('low');
+  text.textContent = score + '%';
+}
+
+function formatSignalName(signal) {
+  const names = {
+    font_mismatch: 'Fonts inconsistentes',
+    edge_tampering: 'Bordes alterados',
+    photo_overlay: 'Superposición de imagen',
+    resolution_anomaly: 'Anomalía de resolución',
+    screen_capture: 'Captura de pantalla',
+    text_inconsistency: 'Texto inconsistente',
+    blur_anomaly: 'Anomalía de enfoque',
+    analysis_error: 'Error de análisis'
+  };
+  return names[signal] || signal;
+}
+
+// Cargar análisis existente al abrir detalle
+async function loadExistingAnalysis(verificationId) {
+  try {
+    const { data } = await supabaseClient
+      .from('verification_analysis')
+      .select('*')
+      .eq('verification_id', verificationId)
+      .order('analyzed_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data) {
+      renderAnalysis({
+        overall_score: data.overall_score,
+        dni_front_score: data.dni_front_score,
+        dni_back_score: data.dni_back_score,
+        life_proof_score: data.life_proof_score,
+        recommendation: data.recommendation,
+        fraud_signals: data.fraud_signals,
+        data_match: data.data_match
+      });
+      document.getElementById('analysisResults').classList.remove('hidden');
+    }
+  } catch (err) {
+    // No hay análisis previo, ignore
+  }
+}
+
+// Event listener para botón de análisis
+document.getElementById('analyzeBtn')?.addEventListener('click', analyzeVerification);
 
 // ============================================
 // INICIAR
