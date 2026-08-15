@@ -9,7 +9,7 @@ const SUPABASE_CONFIG = {
   url: 'https://ceogbuepvunwyavltcgu.supabase.co',
   
   // Anon Key (pública, segura para frontend)
-  anonKey: 'TU_SUPABASE_ANON_KEY_AQUI',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlb2didWVwdnVud3lhdmx0Y2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3NTE1MzIsImV4cCI6MjEwMDMyNzUzMn0.WIlndQsajKccJr4CIfU2SDAe7adtI6wSVTaOmditL-g',
   
   // Dominio del sitio (para generar links)
   domain: 'https://verify.maxihogar.com',
