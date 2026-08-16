@@ -26,7 +26,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const verificationId = $input.first().json.body.verification_id;\n\nconst response = await fetch(\n  'https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications?id=eq.' + verificationId + '&select=*',\n  {\n    headers: {\n      'apikey': 'PEGAR_ANON_KEY',\n      'Authorization': 'Bearer PEGAR_SERVICE_KEY'\n    }\n  }\n);\n\nconst data = await response.json();\n\nif (!data || data.length === 0) {\n  throw new Error('Verification not found');\n}\n\nreturn [{ json: data[0] }];"
+        "jsCode": "const verificationId = $input.first().json.body.verification_id;\n\nconst data = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications?id=eq.' + verificationId + '&select=*',\n  headers: {\n    'apikey': 'PEGAR_ANON_KEY',\n    'Authorization': 'Bearer PEGAR_SERVICE_KEY'\n  },\n  json: true\n});\n\nif (!data || data.length === 0) {\n  throw new Error('Verification not found');\n}\n\nreturn [{ json: data[0] }];"
       }
     },
     {
