@@ -80,7 +80,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const verification = $('Get Verification').item.json;\nconst dniFrontData = $('Get DNI Front').item.binary.data;\nconst dniBackData = $('Get DNI Back').item.binary.data;\n\nconst dniFrontMime = dniFrontData.mimeType || 'image/jpeg';\nconst dniBackMime = dniBackData.mimeType || 'image/jpeg';\n\nreturn [{\n  json: {\n    verification_id: verification.id,\n    unique_code: verification.unique_code,\n    first_name: verification.first_name,\n    last_name: verification.last_name,\n    dni: verification.dni,\n    email: verification.email,\n    card_last_four: verification.card_last_four,\n    dni_front_base64: 'data:' + dniFrontMime + ';base64,' + dniFrontData.data,\n    dni_back_base64: 'data:' + dniBackMime + ';base64,' + dniBackData.data\n  }\n}];"
+        "jsCode": "const verification = $('Get Verification').item.json;\nconst dniFrontData = $('Get DNI Front').item.binary.data;\nconst dniBackData = $('Get DNI Back').item.binary.data;\n\nconst dniFrontB64 = dniFrontData.data;\nconst dniBackB64 = dniBackData.data;\n\nconst dniFrontMime = 'image/jpeg';\nconst dniBackMime = 'image/jpeg';\n\nreturn [{\n  json: {\n    verification_id: verification.id,\n    unique_code: verification.unique_code,\n    first_name: verification.first_name,\n    last_name: verification.last_name,\n    dni: verification.dni,\n    email: verification.email,\n    card_last_four: verification.card_last_four,\n    dni_front_base64: 'data:' + dniFrontMime + ';base64,' + dniFrontB64,\n    dni_back_base64: 'data:' + dniBackMime + ';base64,' + dniBackB64\n  }\n}];"
       }
     },
     {
