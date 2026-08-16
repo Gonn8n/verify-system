@@ -51,7 +51,7 @@
       "position": [680, 350],
       "parameters": {
         "method": "GET",
-        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json.unique_code }}/dni-back.jpg",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $json.unique_code }}/dni-back.jpg",
         "options": {
           "response": { "response": { "responseFormat": "file" } }
         }
@@ -65,7 +65,7 @@
       "position": [680, 500],
       "parameters": {
         "method": "GET",
-        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json.unique_code }}/life-proof.webm",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $json.unique_code }}/life-proof.webm",
         "options": {
           "response": { "response": { "responseFormat": "file" } }
         }
