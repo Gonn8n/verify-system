@@ -36,8 +36,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" }
+            { "name": "apikey", "value": "PEGAR_ANON_KEY_ACA" },
+            { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY_ACA" }
           ]
         },
         "options": {}
@@ -113,7 +113,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.OPENAI_API_KEY }}" }
+            { "name": "Authorization", "value": "Bearer PEGAR_OPENAI_KEY_ACA" }
           ]
         },
         "options": {}
@@ -147,8 +147,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $env.SUPABASE_ANON_KEY }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "apikey", "value": "PEGAR_ANON_KEY_ACA" },
+            { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY_ACA" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
