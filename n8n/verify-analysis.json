@@ -20,27 +20,13 @@
     {
       "id": "get-verification",
       "name": "Get Verification",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [460, 300],
       "parameters": {
-        "method": "GET",
-        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            { "name": "id", "value": "={{ $json.body.verification_id }}" },
-            { "name": "select", "value": "*" }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "PEGAR_ANON_KEY_ACA" },
-            { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY_ACA" }
-          ]
-        },
-        "options": {}
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const verificationId = $input.first().json.body.verification_id;\n\nconst response = await fetch(\n  'https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications?id=eq.' + verificationId + '&select=*',\n  {\n    headers: {\n      'apikey': 'PEGAR_ANON_KEY',\n      'Authorization': 'Bearer PEGAR_SERVICE_KEY'\n    }\n  }\n);\n\nconst data = await response.json();\n\nif (!data || data.length === 0) {\n  throw new Error('Verification not found');\n}\n\nreturn [{ json: data[0] }];"
       }
     },
     {
@@ -51,7 +37,7 @@
       "position": [680, 200],
       "parameters": {
         "method": "GET",
-        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $json[0].unique_code }}/dni-front.jpg",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $json.unique_code }}/dni-front.jpg",
         "options": {
           "response": { "response": { "responseFormat": "file" } }
         }
@@ -65,7 +51,7 @@
       "position": [680, 350],
       "parameters": {
         "method": "GET",
-        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json[0].unique_code }}/dni-back.jpg",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json.unique_code }}/dni-back.jpg",
         "options": {
           "response": { "response": { "responseFormat": "file" } }
         }
@@ -79,7 +65,7 @@
       "position": [680, 500],
       "parameters": {
         "method": "GET",
-        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json[0].unique_code }}/life-proof.webm",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/storage/v1/object/public/verification-files/{{ $('Get Verification').item.json.unique_code }}/life-proof.webm",
         "options": {
           "response": { "response": { "responseFormat": "file" } }
         }
@@ -94,7 +80,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const verification = $('Get Verification').item.json[0];\nconst dniFrontBinary = $('Get DNI Front').item.binary.data;\nconst dniBackBinary = $('Get DNI Back').item.binary.data;\n\nconst dniFrontBase64 = dniFrontBinary.data;\nconst dniBackBase64 = dniBackBinary.data;\n\nconst dniFrontMime = dniFrontBinary.mimeType || 'image/jpeg';\nconst dniBackMime = dniBackBinary.mimeType || 'image/jpeg';\n\nreturn [{\n  json: {\n    verification_id: verification.id,\n    unique_code: verification.unique_code,\n    first_name: verification.first_name,\n    last_name: verification.last_name,\n    dni: verification.dni,\n    email: verification.email,\n    card_last_four: verification.card_last_four,\n    dni_front_base64: 'data:' + dniFrontMime + ';base64,' + dniFrontBase64,\n    dni_back_base64: 'data:' + dniBackMime + ';base64,' + dniBackBase64\n  }\n}];"
+        "jsCode": "const verification = $('Get Verification').item.json;\nconst dniFrontBinary = $('Get DNI Front').item.binary.data;\nconst dniBackBinary = $('Get DNI Back').item.binary.data;\n\nconst dniFrontBase64 = dniFrontBinary.data;\nconst dniBackBase64 = dniBackBinary.data;\n\nconst dniFrontMime = dniFrontBinary.mimeType || 'image/jpeg';\nconst dniBackMime = dniBackBinary.mimeType || 'image/jpeg';\n\nreturn [{\n  json: {\n    verification_id: verification.id,\n    unique_code: verification.unique_code,\n    first_name: verification.first_name,\n    last_name: verification.last_name,\n    dni: verification.dni,\n    email: verification.email,\n    card_last_four: verification.card_last_four,\n    dni_front_base64: 'data:' + dniFrontMime + ';base64,' + dniFrontBase64,\n    dni_back_base64: 'data:' + dniBackMime + ';base64,' + dniBackBase64\n  }\n}];"
       }
     },
     {
@@ -113,7 +99,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer PEGAR_OPENAI_KEY_ACA" }
+            { "name": "Authorization", "value": "Bearer PEGAR_OPENAI_KEY" }
           ]
         },
         "options": {}
@@ -147,8 +133,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "PEGAR_ANON_KEY_ACA" },
-            { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY_ACA" },
+            { "name": "apikey", "value": "PEGAR_ANON_KEY" },
+            { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=representation" }
           ]
