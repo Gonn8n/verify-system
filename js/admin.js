@@ -645,10 +645,63 @@ function renderAnalysis(analysis) {
   const recData = recLabels[analysis.recommendation] || recLabels.medium_risk;
   rec.innerHTML = `<span class="rec-badge ${recData.class}">${recData.text}</span>`;
 
+  // Resumen
+  const summary = analysis.summary || [];
+  const summarySection = document.getElementById('summarySection');
+  const summaryContent = document.getElementById('summaryContent');
+  if (summary.length > 0) {
+    summarySection.classList.remove('hidden');
+    summaryContent.innerHTML = '<ul class="summary-list">' + summary.map(s => `<li>${s}</li>`).join('') + '</ul>';
+  } else {
+    summarySection.classList.add('hidden');
+  }
+
   // Scores por documento
   setScoreBar('frontScore', 'frontScoreText', analysis.dni_front_score || 0);
   setScoreBar('backScore', 'backScoreText', analysis.dni_back_score || 0);
-  setScoreBar('lifeProofScore', 'lifeProofScoreText', analysis.life_proof_score || 0);
+
+  // Hallazgos del DNI
+  const frontFindings = analysis.dni_front_findings || [];
+  const backFindings = analysis.dni_back_findings || [];
+  const findingsSection = document.getElementById('findingsSection');
+  const findingsContent = document.getElementById('findingsContent');
+
+  if (frontFindings.length > 0 || backFindings.length > 0) {
+    findingsSection.classList.remove('hidden');
+    let findingsHtml = '';
+    if (frontFindings.length > 0) {
+      findingsHtml += '<div class="findings-group"><span class="findings-label">Frente:</span><ul>' + frontFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
+    }
+    if (backFindings.length > 0) {
+      findingsHtml += '<div class="findings-group"><span class="findings-label">Dorso:</span><ul>' + backFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
+    }
+    findingsContent.innerHTML = findingsHtml;
+  } else {
+    findingsSection.classList.add('hidden');
+  }
+
+  // Consistencia del documento
+  const consistency = analysis.data_consistency || {};
+  const consistencySection = document.getElementById('consistencySection');
+  const consistencyContent = document.getElementById('consistencyContent');
+  const consistencyKeys = [
+    { key: 'front_back_match', label: 'Frente y dorso consistentes' },
+    { key: 'text_readable', label: 'Texto legible' },
+    { key: 'document_intact', label: 'Documento intacto' }
+  ];
+  const filledConsistency = consistencyKeys.filter(k => consistency[k.key] !== undefined);
+  if (filledConsistency.length > 0) {
+    consistencySection.classList.remove('hidden');
+    consistencyContent.innerHTML = filledConsistency.map(k => {
+      const val = consistency[k.key];
+      const cls = val ? 'match-ok' : 'match-error';
+      const icon = val ? '✓' : '✗';
+      const text = val ? 'Sí' : 'No';
+      return `<div class="match-row"><span class="match-label">${k.label}</span><span class="match-status ${cls}">${icon} ${text}</span></div>`;
+    }).join('');
+  } else {
+    consistencySection.classList.add('hidden');
+  }
 
   // Data match
   const dataMatch = analysis.data_match || {};
@@ -708,16 +761,18 @@ function setScoreBar(barId, textId, score) {
 
 function formatSignalName(signal) {
   const names = {
-    font_mismatch: 'Fonts inconsistentes',
+    font_mismatch: 'Fuentes inconsistentes',
     edge_tampering: 'Bordes alterados',
     photo_overlay: 'Superposición de imagen',
     resolution_anomaly: 'Anomalía de resolución',
     screen_capture: 'Captura de pantalla',
     text_inconsistency: 'Texto inconsistente',
     blur_anomaly: 'Anomalía de enfoque',
+    name_mismatch: 'Nombre no coincide',
+    dni_mismatch: 'DNI no coincide',
     analysis_error: 'Error de análisis'
   };
-  return names[signal] || signal;
+  return names[signal] || signal.replace(/_/g, ' ');
 }
 
 // Cargar análisis existente al abrir detalle
@@ -736,10 +791,13 @@ async function loadExistingAnalysis(verificationId) {
         overall_score: data.overall_score,
         dni_front_score: data.dni_front_score,
         dni_back_score: data.dni_back_score,
-        life_proof_score: data.life_proof_score,
+        dni_front_findings: data.dni_front_findings,
+        dni_back_findings: data.dni_back_findings,
         recommendation: data.recommendation,
         fraud_signals: data.fraud_signals,
-        data_match: data.data_match
+        data_match: data.data_match,
+        data_consistency: data.data_consistency,
+        summary: data.summary
       });
       document.getElementById('analysisResults').classList.remove('hidden');
     }

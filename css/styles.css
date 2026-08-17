@@ -502,7 +502,7 @@ p {
 .detail-panel {
   background: var(--color-white);
   width: 100%;
-  max-width: 480px;
+  max-width: 600px;
   max-height: 90vh;
   border-radius: 20px 20px 0 0;
   overflow-y: auto;
@@ -1215,4 +1215,107 @@ p {
 #analyzeBtn {
   width: 100%;
   margin-bottom: 16px;
+}
+
+/* ---- Summary ---- */
+.analysis-summary {
+  margin-bottom: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.analysis-summary h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.summary-list li {
+  position: relative;
+  padding: 6px 0 6px 18px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.summary-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+/* ---- Findings ---- */
+.analysis-findings {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.analysis-findings h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.findings-group {
+  margin-bottom: 10px;
+}
+
+.findings-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.findings-group ul {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+}
+
+.findings-group li {
+  position: relative;
+  padding: 4px 0 4px 16px;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.findings-group li::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+  color: var(--color-text-secondary);
+}
+
+/* ---- Consistency ---- */
+.analysis-consistency {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.analysis-consistency h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
 }
