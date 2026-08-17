@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verify - Validar Operación</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
@@ -105,7 +105,7 @@
     }
     .camera-btn-record.recording {
       animation: pulse 1.5s ease infinite;
-      background: #B91C1C;
+      background: #1D4ED8;
     }
     .camera-btn-stop {
       background: var(--color-text-secondary);
@@ -120,7 +120,7 @@
       justify-content: center;
       gap: 8px;
       margin-top: 16px;
-      color: var(--color-primary);
+      color: var(--color-rejected);
       font-weight: 600;
     }
     .recording-indicator.show {
@@ -129,7 +129,7 @@
     .recording-dot {
       width: 12px;
       height: 12px;
-      background: var(--color-primary);
+      background: var(--color-rejected);
       border-radius: 50%;
       animation: blink 1s ease infinite;
     }
@@ -145,7 +145,7 @@
     .success-icon-large {
       width: 100px;
       height: 100px;
-      background: #FEF3C7;
+      background: #DBEAFE;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -155,7 +155,7 @@
     .success-icon-large svg {
       width: 50px;
       height: 50px;
-      color: #F59E0B;
+      color: #2563EB;
     }
   </style>
 </head>
@@ -217,12 +217,12 @@
           
           <div class="info-alert">
             <div class="info-alert-icon">i</div>
-            <span>Por favor, no dibuje ni edite la imagen.</span>
+            <span>No edites ni modifiques la imagen.</span>
           </div>
           
           <div class="upload-area" id="dniFrontArea">
             <div class="upload-icon">📷</div>
-            <div class="upload-text">Arrastre o seleccione el archivo.</div>
+            <div class="upload-text">Arrastrá o seleccioná el archivo.</div>
           </div>
           <input type="file" id="dniFrontInput" accept="image/*" capture="environment" class="hidden">
           <img id="dniFrontPreview" class="upload-preview" alt="DNI Frente">
@@ -252,12 +252,12 @@
           
           <div class="info-alert">
             <div class="info-alert-icon">i</div>
-            <span>Por favor, no dibuje ni edite la imagen.</span>
+            <span>No edites ni modifiques la imagen.</span>
           </div>
           
           <div class="upload-area" id="dniBackArea">
             <div class="upload-icon">📷</div>
-            <div class="upload-text">Arrastre o seleccione el archivo.</div>
+            <div class="upload-text">Arrastrá o seleccioná el archivo.</div>
           </div>
           <input type="file" id="dniBackInput" accept="image/*" capture="environment" class="hidden">
           <img id="dniBackPreview" class="upload-preview" alt="DNI Dorso">
@@ -287,7 +287,7 @@
           
           <div class="video-instructions">
             <div style="font-size: 4rem; margin-bottom: 20px;">🎥</div>
-            <p>Necesitamos accesso a tu cámara para grabar el video.</p>
+            <p>Necesitamos acceso a tu cámara para grabar el video.</p>
           </div>
           
           <div class="nav-buttons">
@@ -363,16 +363,16 @@
             <div class="progress-dot active"></div>
           </div>
           <h1 class="text-center">Tarjeta</h1>
-          <p>Suba una foto de la tarjeta utilizada tapando los primeros números, dejando visible solo los últimos 4. Tenga en cuenta que el nombre debe quedar visible. Tape el código de seguridad en caso de tenerlo en el frente. Si utilizó más de una tarjeta, repita este paso por cada una de ellas.</p>
+          <p>Subí una foto de la tarjeta utilizada tapando los primeros números, dejando visible solo los últimos 4. Asegurate de que el nombre quede visible. Tape el código de seguridad si está en el frente. Si usaste más de una tarjeta, repetí este paso por cada una.</p>
           
           <div class="info-alert">
             <div class="info-alert-icon">i</div>
-            <span>Por favor, no dibuje ni edite la imagen.</span>
+            <span>No edites ni modifiques la imagen.</span>
           </div>
           
           <div class="upload-area" id="cardArea">
             <div class="upload-icon">📷</div>
-            <div class="upload-text">Arrastre o seleccione el archivo.</div>
+            <div class="upload-text">Arrastrá o seleccioná el archivo.</div>
           </div>
           <input type="file" id="cardInput" accept="image/*" capture="environment" class="hidden">
           <img id="cardPreview" class="upload-preview" alt="Tarjeta">
@@ -392,13 +392,13 @@
       <div class="step-container" id="step10">
         <div class="intro-card">
           <div class="success-container">
-            <div class="success-icon-large">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
+            <div class="success-icon-large" style="background: #DBEAFE;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="width:50px;height:50px;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
             </div>
-            <h1>Validación en proceso.</h1>
+            <h1>¡Documentación enviada!</h1>
             <p>Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.</p>
           </div>
         </div>

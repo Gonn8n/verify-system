@@ -19,6 +19,11 @@ let recordedChunks = [];
 let recordedBlob = null;
 let userLocation = null;
 
+// Constantes
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/webm', 'video/mp4'];
+
 // Archivos subidos
 let files = {
   dniFront: null,
@@ -26,6 +31,55 @@ let files = {
   lifeProofVideo: null,
   cardPhoto: null
 };
+
+// ============================================
+// TOAST NOTIFICATIONS
+// ============================================
+
+let toastTimeout = null;
+
+function showToast(message, type = 'info') {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  const colors = {
+    info: { bg: '#1F2937', color: '#fff' },
+    error: { bg: '#DC2626', color: '#fff' },
+    success: { bg: '#10B981', color: '#fff' }
+  };
+  const c = colors[type] || colors.info;
+  toast.style.cssText = `background:${c.bg};color:${c.color};padding:12px 20px;border-radius:12px;font-size:0.9rem;font-family:inherit;box-shadow:0 4px 12px rgba(0,0,0,0.15);opacity:0;transition:opacity 0.3s ease;pointer-events:auto;max-width:90vw;text-align:center;`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ============================================
+// VALIDACIÓN DE ARCHIVOS
+// ============================================
+
+function validateFile(file, allowedTypes) {
+  if (!file) return { valid: false, error: 'No se seleccionó ningún archivo' };
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)}MB. El máximo es 10MB` };
+  }
+  if (allowedTypes && !allowedTypes.includes(file.type)) {
+    return { valid: false, error: 'Formato de archivo no válido' };
+  }
+  return { valid: true };
+}
 
 // ============================================
 // INICIALIZACIÓN
@@ -202,16 +256,7 @@ document.getElementById('continueOnMobileBtn')?.addEventListener('click', () => 
 // ============================================
 
 async function requestPermissions() {
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: 'environment' },
-      audio: false 
-    });
-  } catch (err) {
-    console.error('Permission error:', err);
-  }
-
-  // Pedir geolocalización (opcional)
+  // Solo pedir geolocalización, no cámara (se pide cuando se necesita)
   requestGeolocation();
 }
 
@@ -250,21 +295,26 @@ dniFrontCaptureBtn?.addEventListener('click', () => {
 
 dniFrontInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) {
-    files.dniFront = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      dniFrontPreview.src = e.target.result;
-      dniFrontPreview.classList.add('show');
-      dniFrontArea.classList.add('has-file');
-    };
-    reader.readAsDataURL(file);
+  if (!file) return;
+  const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
+  if (!validation.valid) {
+    showToast(validation.error, 'error');
+    e.target.value = '';
+    return;
   }
+  files.dniFront = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    dniFrontPreview.src = e.target.result;
+    dniFrontPreview.classList.add('show');
+    dniFrontArea.classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
 });
 
 document.getElementById('nextDniFrontBtn')?.addEventListener('click', () => {
   if (!files.dniFront) {
-    alert('Por favor, subí una foto del frente de tu DNI');
+    showToast('Subí una foto del frente de tu DNI', 'error');
     return;
   }
   showStep(5);
@@ -293,21 +343,26 @@ dniBackCaptureBtn?.addEventListener('click', () => {
 
 dniBackInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) {
-    files.dniBack = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      dniBackPreview.src = e.target.result;
-      dniBackPreview.classList.add('show');
-      dniBackArea.classList.add('has-file');
-    };
-    reader.readAsDataURL(file);
+  if (!file) return;
+  const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
+  if (!validation.valid) {
+    showToast(validation.error, 'error');
+    e.target.value = '';
+    return;
   }
+  files.dniBack = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    dniBackPreview.src = e.target.result;
+    dniBackPreview.classList.add('show');
+    dniBackArea.classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
 });
 
 document.getElementById('nextDniBackBtn')?.addEventListener('click', () => {
   if (!files.dniBack) {
-    alert('Por favor, subí una foto del dorso de tu DNI');
+    showToast('Subí una foto del dorso de tu DNI', 'error');
     return;
   }
   showStep(6);
@@ -350,7 +405,7 @@ document.getElementById('okPermissionsBtn')?.addEventListener('click', async () 
     showStep(8);
   } catch (err) {
     console.error('Camera error:', err);
-    alert('No se pudo acceder a la cámara. Por favor, verificá los permisos del navegador.');
+    showToast('No se pudo acceder a la cámara. Verificá los permisos del navegador.', 'error');
   }
 });
 
@@ -422,17 +477,15 @@ function stopCamera() {
 
 document.getElementById('nextRecordBtn')?.addEventListener('click', () => {
   if (!files.lifeProofVideo) {
-    alert('Por favor, grabá un video de prueba de vida');
+    showToast('Grabá un video de prueba de vida', 'error');
     return;
   }
   showStep(9);
-  // Reabrir cámara para tomar foto de tarjeta
-  reopenCamera();
 });
 
 document.getElementById('backRecordBtn')?.addEventListener('click', () => {
   stopCamera();
-  showStep(6);
+  showStep(7);
 });
 
 // ============================================
@@ -466,23 +519,31 @@ cardCaptureBtn?.addEventListener('click', () => {
 
 cardInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) {
-    files.cardPhoto = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      cardPreview.src = e.target.result;
-      cardPreview.classList.add('show');
-      cardArea.classList.add('has-file');
-    };
-    reader.readAsDataURL(file);
+  if (!file) return;
+  const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
+  if (!validation.valid) {
+    showToast(validation.error, 'error');
+    e.target.value = '';
+    return;
   }
+  files.cardPhoto = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    cardPreview.src = e.target.result;
+    cardPreview.classList.add('show');
+    cardArea.classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
 });
 
 document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
   if (!files.cardPhoto) {
-    alert('Por favor, subí una foto de tu tarjeta');
+    showToast('Subí una foto de tu tarjeta', 'error');
     return;
   }
+  
+  // Cerrar cámara antes de subir
+  stopCamera();
   
   // Subir todos los archivos
   await uploadFiles();
@@ -490,6 +551,7 @@ document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('backCardBtn')?.addEventListener('click', () => {
+  stopCamera();
   showStep(8);
   // Reabrir cámara de video
   reopenCameraForVideo();
@@ -516,27 +578,24 @@ async function reopenCameraForVideo() {
 async function uploadFiles() {
   const code = verificationData.unique_code;
 
-  // Subir archivos y obtener URLs
-  let dniFrontUrl = null;
-  let dniBackUrl = null;
-  let videoUrl = null;
-  let cardUrl = null;
+  // Mostrar feedback de carga
+  showToast('Subiendo archivos...', 'info');
 
-  if (files.dniFront) {
-    dniFrontUrl = await uploadFile(files.dniFront, `${code}/dni-front.jpg`);
-  }
+  // Subir todos los archivos en paralelo
+  const uploads = [];
+  if (files.dniFront) uploads.push(uploadFile(files.dniFront, `${code}/dni-front.jpg`));
+  if (files.dniBack) uploads.push(uploadFile(files.dniBack, `${code}/dni-back.jpg`));
+  if (files.lifeProofVideo) uploads.push(uploadFile(files.lifeProofVideo, `${code}/life-proof.webm`));
+  if (files.cardPhoto) uploads.push(uploadFile(files.cardPhoto, `${code}/card-photo.jpg`));
 
-  if (files.dniBack) {
-    dniBackUrl = await uploadFile(files.dniBack, `${code}/dni-back.jpg`);
-  }
+  const results = await Promise.all(uploads);
 
-  if (files.lifeProofVideo) {
-    videoUrl = await uploadFile(files.lifeProofVideo, `${code}/life-proof.webm`);
-  }
-
-  if (files.cardPhoto) {
-    cardUrl = await uploadFile(files.cardPhoto, `${code}/card-photo.jpg`);
-  }
+  // Mapear resultados
+  let i = 0;
+  const dniFrontUrl = files.dniFront ? results[i++] : null;
+  const dniBackUrl = files.dniBack ? results[i++] : null;
+  const videoUrl = files.lifeProofVideo ? results[i++] : null;
+  const cardUrl = files.cardPhoto ? results[i++] : null;
 
   // Usar la función segura para actualizar el registro (sin login)
   const { data, error } = await supabaseClient
@@ -552,7 +611,7 @@ async function uploadFiles() {
 
   if (error) {
     console.error('Error updating verification:', error);
-    alert('Error al guardar la verificación. Por favor, intentá de nuevo.');
+    showToast('Error al guardar. Intentá de nuevo.', 'error');
   }
 }
 
