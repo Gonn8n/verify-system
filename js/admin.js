@@ -213,8 +213,11 @@ function renderList() {
       const url = `${SUPABASE_CONFIG.domain}/v/?code=${code}`;
 
       if (action === 'copy') {
-        navigator.clipboard.writeText(url);
-        showToast('Link copiado');
+        navigator.clipboard.writeText(url).then(() => {
+          showToast('Link copiado');
+        }).catch(() => {
+          showToast('No se pudo copiar el link', 'error');
+        });
       } else if (action === 'whatsapp') {
         const text = encodeURIComponent(`Hola ${name}, necesitamos que verifiques tu compra. Hacé click en el enlace: ${url}`);
         window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -338,8 +341,11 @@ saveNewBtn.addEventListener('click', async () => {
 function setupLinkButtons(url, email, firstName) {
   // Copy
   copyLinkBtn.onclick = () => {
-    navigator.clipboard.writeText(url);
-    showToast('Link copiado');
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Link copiado');
+    }).catch(() => {
+      showToast('No se pudo copiar el link', 'error');
+    });
   };
 
   // Email
@@ -393,8 +399,11 @@ async function openDetail(id) {
 
   // Configurar botones de link del detalle
   document.getElementById('detailCopyBtn').onclick = () => {
-    navigator.clipboard.writeText(verificationUrl);
-    showToast('Link copiado');
+    navigator.clipboard.writeText(verificationUrl).then(() => {
+      showToast('Link copiado');
+    }).catch(() => {
+      showToast('No se pudo copiar el link', 'error');
+    });
   };
 
   document.getElementById('detailEmailBtn').onclick = () => {
@@ -511,6 +520,9 @@ detailOverlay.addEventListener('click', (e) => {
 
 async function updateStatus(newStatus) {
   if (!currentDetailId) return;
+
+  const statusLabel = getStatusLabel(newStatus);
+  if (!confirm(`¿Cambiar estado a "${statusLabel}"?`)) return;
 
   const { error } = await supabaseClient
     .from('verifications')

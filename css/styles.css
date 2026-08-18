@@ -2,7 +2,7 @@
    VERIFY SYSTEM - Estilos Globales
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
 
 /* ---- Variables CSS ---- */
 :root {
@@ -110,7 +110,7 @@ body {
 
 .logo-text {
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-primary);
   letter-spacing: -0.5px;
 }
@@ -1102,7 +1102,7 @@ p {
 }
 
 .score-label {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;

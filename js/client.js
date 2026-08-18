@@ -60,10 +60,12 @@ function showToast(message, type = 'info') {
 
   requestAnimationFrame(() => { toast.style.opacity = '1'; });
 
+  // Duración dinámica: 3s mensajes cortos, 5s mensajes largos
+  const duration = message.length > 50 ? 5000 : 3000;
   setTimeout(() => {
     toast.style.opacity = '0';
     setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  }, duration);
 }
 
 // ============================================
@@ -122,6 +124,13 @@ async function init() {
   // Actualizar UI
   document.getElementById('operationCode').textContent = '#' + verificationData.unique_code;
   document.getElementById('commerceName').textContent = SUPABASE_CONFIG.commerceName;
+
+  // Restaurar progreso guardado
+  const savedStep = sessionStorage.getItem(`verify_step_${verificationData.unique_code}`);
+  if (savedStep && parseInt(savedStep) >= 2) {
+    showStep(parseInt(savedStep));
+    return;
+  }
 
   // Detectar si es mobile
   if (!isMobile()) {
@@ -209,6 +218,11 @@ function showStep(step) {
   if (stepEl) {
     stepEl.classList.add('active');
     currentStep = step;
+    // Persistir progreso
+    const code = verificationData?.unique_code;
+    if (code) {
+      sessionStorage.setItem(`verify_step_${code}`, step);
+    }
   }
 }
 
@@ -417,6 +431,14 @@ const recordBtn = document.getElementById('recordBtn');
 const stopBtn = document.getElementById('stopBtn');
 const recordingIndicator = document.getElementById('recordingIndicator');
 const videoPreview = document.getElementById('videoPreview');
+let recordingTimer = null;
+let recordingSeconds = 0;
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
 
 recordBtn?.addEventListener('click', () => {
   if (!mediaStream) return;
@@ -451,6 +473,15 @@ recordBtn?.addEventListener('click', () => {
 
   mediaRecorder.start();
   
+  // Iniciar timer
+  recordingSeconds = 0;
+  const timerEl = document.getElementById('recordingTimer');
+  if (timerEl) timerEl.textContent = '00:00';
+  recordingTimer = setInterval(() => {
+    recordingSeconds++;
+    if (timerEl) timerEl.textContent = formatTime(recordingSeconds);
+  }, 1000);
+  
   // UI
   recordBtn.classList.add('recording');
   stopBtn.classList.add('show');
@@ -461,6 +492,10 @@ stopBtn?.addEventListener('click', () => {
   if (mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
   }
+  
+  // Detener timer
+  clearInterval(recordingTimer);
+  recordingTimer = null;
   
   // UI
   recordBtn.classList.remove('recording');
