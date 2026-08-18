@@ -300,10 +300,16 @@ const dniFrontPreview = document.getElementById('dniFrontPreview');
 const dniFrontUploadBtn = document.getElementById('dniFrontUploadBtn');
 const dniFrontCaptureBtn = document.getElementById('dniFrontCaptureBtn');
 
-dniFrontArea?.addEventListener('click', () => dniFrontInput.click());
-dniFrontUploadBtn?.addEventListener('click', () => dniFrontInput.click());
-dniFrontCaptureBtn?.addEventListener('click', () => {
+dniFrontArea?.addEventListener('click', () => {
   dniFrontInput.removeAttribute('capture');
+  dniFrontInput.click();
+});
+dniFrontUploadBtn?.addEventListener('click', () => {
+  dniFrontInput.removeAttribute('capture');
+  dniFrontInput.click();
+});
+dniFrontCaptureBtn?.addEventListener('click', () => {
+  dniFrontInput.setAttribute('capture', 'environment');
   dniFrontInput.click();
 });
 
@@ -318,12 +324,14 @@ dniFrontInput?.addEventListener('change', (e) => {
   }
   files.dniFront = file;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    dniFrontPreview.src = e.target.result;
+  reader.onload = (ev) => {
+    dniFrontPreview.src = ev.target.result;
     dniFrontPreview.classList.add('show');
     dniFrontArea.classList.add('has-file');
   };
   reader.readAsDataURL(file);
+  // Resetear input para poder re-seleccionar el mismo archivo
+  e.target.value = '';
 });
 
 document.getElementById('nextDniFrontBtn')?.addEventListener('click', () => {
@@ -348,10 +356,16 @@ const dniBackPreview = document.getElementById('dniBackPreview');
 const dniBackUploadBtn = document.getElementById('dniBackUploadBtn');
 const dniBackCaptureBtn = document.getElementById('dniBackCaptureBtn');
 
-dniBackArea?.addEventListener('click', () => dniBackInput.click());
-dniBackUploadBtn?.addEventListener('click', () => dniBackInput.click());
-dniBackCaptureBtn?.addEventListener('click', () => {
+dniBackArea?.addEventListener('click', () => {
   dniBackInput.removeAttribute('capture');
+  dniBackInput.click();
+});
+dniBackUploadBtn?.addEventListener('click', () => {
+  dniBackInput.removeAttribute('capture');
+  dniBackInput.click();
+});
+dniBackCaptureBtn?.addEventListener('click', () => {
+  dniBackInput.setAttribute('capture', 'environment');
   dniBackInput.click();
 });
 
@@ -366,12 +380,14 @@ dniBackInput?.addEventListener('change', (e) => {
   }
   files.dniBack = file;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    dniBackPreview.src = e.target.result;
+  reader.onload = (ev) => {
+    dniBackPreview.src = ev.target.result;
     dniBackPreview.classList.add('show');
     dniBackArea.classList.add('has-file');
   };
   reader.readAsDataURL(file);
+  // Resetear input para poder re-seleccionar el mismo archivo
+  e.target.value = '';
 });
 
 document.getElementById('nextDniBackBtn')?.addEventListener('click', () => {
@@ -544,7 +560,7 @@ const cardPreview = document.getElementById('cardPreview');
 const cardCaptureBtn = document.getElementById('cardCaptureBtn');
 
 cardArea?.addEventListener('click', () => {
-  cardInput.setAttribute('capture', 'environment');
+  cardInput.removeAttribute('capture');
   cardInput.click();
 });
 cardCaptureBtn?.addEventListener('click', () => {
@@ -563,12 +579,14 @@ cardInput?.addEventListener('change', (e) => {
   }
   files.cardPhoto = file;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    cardPreview.src = e.target.result;
+  reader.onload = (ev) => {
+    cardPreview.src = ev.target.result;
     cardPreview.classList.add('show');
     cardArea.classList.add('has-file');
   };
   reader.readAsDataURL(file);
+  // Resetear input para poder re-seleccionar el mismo archivo
+  e.target.value = '';
 });
 
 document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
