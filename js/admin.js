@@ -578,7 +578,7 @@ async function deleteVerification(id, name) {
   const word = getRandomWord();
   showConfirmModal({
     title: 'Eliminar verificación',
-    text: `Vas a eliminar la verificación de ${name}. Escribí "${word}" para confirmar. Esta acción no se puede deshacer.`,
+    text: `Vas a eliminar la verificación de ${name}. Esta acción no se puede deshacer.`,
     requireWord: true,
     confirmWord: word,
     danger: true,
@@ -684,12 +684,42 @@ async function runAnalysis(verificationId) {
 
     if (!response.ok) throw new Error('Error en análisis');
 
-    showToast('Análisis completado', 'success');
-    await loadExistingAnalysis(verificationId);
+    showToast('Análisis enviado. Procesando...', 'success');
+
+    // Poll for results — n8n takes time to save to Supabase
+    let attempts = 0;
+    const maxAttempts = 10;
+    const pollInterval = 2000;
+
+    const poll = async () => {
+      const { data } = await supabaseClient
+        .from('verification_analysis')
+        .select('score')
+        .eq('verification_id', verificationId)
+        .single();
+
+      if (data && data.score != null) {
+        await loadExistingAnalysis(verificationId);
+        showToast('Análisis completado', 'success');
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Verificar con Agente';
+        return;
+      }
+
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(poll, pollInterval);
+      } else {
+        showToast('Análisis tardó demasiado. Refrescá la página.', 'error');
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Verificar con Agente';
+      }
+    };
+
+    setTimeout(poll, pollInterval);
   } catch (err) {
     console.error('Analysis error:', err);
     showToast('Error al analizar', 'error');
-  } finally {
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = 'Verificar con Agente';
   }
