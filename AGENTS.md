@@ -8,7 +8,7 @@ Sistema de verificación de identidad para ecommerce. Flujo cliente → upload d
 - **Idioma código:** Inglés
 - **Commit messages:** Español, descriptivos
 - **Hosting:** DonWeb public_html/verify
-- **Subdomain:** verify.maxihogar.com (pendiente, usar wi711619.ferozo.com/verify como fallback)
+- **Subdomain:** verify.maxihogar.com ✅
 
 ## Infraestructura
 - Supabase project: `ceogbuepvunwyavltcgu`
@@ -40,8 +40,8 @@ Sistema de verificación de identidad para ecommerce. Flujo cliente → upload d
 - **Prioridad:** Baja
 
 ### 🌐 Dominio: Configurar verify.maxihogar.com
-- **Estado:** Pendiente (el usuario está trabajando en esto)
-- **URL temporal:** `https://wi711619.ferozo.com/verify/index.html`
+- **Estado:** ✅ Completado
+- **URL:** `https://verify.maxihogar.com`
 - **Prioridad:** Media
 
 ### 📊 Dashboard admin: Estadísticas
