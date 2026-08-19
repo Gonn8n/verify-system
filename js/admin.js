@@ -346,9 +346,22 @@ async function openDetail(id) {
   document.getElementById('detailLink').textContent = verificationUrl;
 
   // Configurar botones de link del detalle
-  document.getElementById('detailCopyBtn').onclick = () => {
-    navigator.clipboard.writeText(verificationUrl);
-    showToast('Link copiado', 'success');
+  document.getElementById('detailCopyBtn').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(verificationUrl);
+      showToast('Link copiado', 'success');
+    } catch {
+      // Fallback: textarea + execCommand
+      const ta = document.createElement('textarea');
+      ta.value = verificationUrl;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Link copiado', 'success');
+    }
   };
 
   document.getElementById('detailEmailBtn').onclick = () => {
@@ -584,14 +597,16 @@ async function deleteVerification(id, name) {
     danger: true,
     onConfirm: async () => {
       try {
-        const { error } = await supabaseClient.rpc('delete_verification', { p_id: id });
+        console.log('Eliminando verificación:', id);
+        const { data, error } = await supabaseClient.rpc('delete_verification', { p_id: id });
+        console.log('RPC response:', { data, error });
         if (error) throw error;
         showToast('Verificación eliminada', 'success');
         closeDetailPanel();
         await loadVerifications();
       } catch (err) {
-        console.error('Error deleting:', err);
-        showToast('Error al eliminar', 'error');
+        console.error('Error deleting:', err.message || err);
+        showToast('Error al eliminar: ' + (err.message || 'Error desconocido'), 'error');
       }
     }
   });

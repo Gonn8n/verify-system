@@ -94,7 +94,6 @@ function updateProgress(step) {
   }
 
   stepper.classList.remove('hidden');
-  document.getElementById('stepperCount').textContent = `Paso ${meta.index + 1} de ${TOTAL_STEPS}`;
   document.getElementById('stepperLabel').textContent = meta.label;
   document.getElementById('stepperFill').style.width = (meta.index / TOTAL_STEPS * 100) + '%';
 }
@@ -295,7 +294,7 @@ const dniFrontCaptureBtn = document.getElementById('dniFrontCaptureBtn');
 dniFrontArea?.addEventListener('click', () => dniFrontInput.click());
 dniFrontUploadBtn?.addEventListener('click', () => dniFrontInput.click());
 dniFrontCaptureBtn?.addEventListener('click', () => {
-  dniFrontInput.removeAttribute('capture');
+  dniFrontInput.setAttribute('capture', 'environment');
   dniFrontInput.click();
 });
 
@@ -339,7 +338,7 @@ const dniBackCaptureBtn = document.getElementById('dniBackCaptureBtn');
 dniBackArea?.addEventListener('click', () => dniBackInput.click());
 dniBackUploadBtn?.addEventListener('click', () => dniBackInput.click());
 dniBackCaptureBtn?.addEventListener('click', () => {
-  dniBackInput.removeAttribute('capture');
+  dniBackInput.setAttribute('capture', 'environment');
   dniBackInput.click();
 });
 
@@ -524,7 +523,7 @@ const cardCaptureBtn = document.getElementById('cardCaptureBtn');
 cardArea?.addEventListener('click', () => cardInput.click());
 cardUploadBtn?.addEventListener('click', () => cardInput.click());
 cardCaptureBtn?.addEventListener('click', () => {
-  cardInput.removeAttribute('capture');
+  cardInput.setAttribute('capture', 'environment');
   cardInput.click();
 });
 

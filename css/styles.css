@@ -1758,23 +1758,24 @@ p {
 /* ---- Link generated ---- */
 .generated-link {
   background: var(--color-bg);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   word-break: break-all;
   margin: var(--space-3) 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
+  border: 1px solid var(--color-border);
 }
 
 .generated-link-text {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--color-text);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
 .link-actions {
@@ -1803,6 +1804,9 @@ p {
   flex: 1;
   font-size: var(--text-sm);
   padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
 }
 
 /* ---- QR ---- */
