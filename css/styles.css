@@ -1114,6 +1114,10 @@ p {
   box-shadow: var(--shadow-md);
 }
 
+.media-rotate {
+  color: var(--color-primary);
+}
+
 /* ---- Image Modal ---- */
 .image-modal-overlay {
   position: fixed;

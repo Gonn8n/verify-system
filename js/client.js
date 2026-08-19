@@ -84,6 +84,94 @@ function validateFile(file, allowedTypes) {
 }
 
 // ============================================
+// AUTO-ROTACIÓN EXIF
+// ============================================
+
+function getExifOrientation(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const view = new DataView(e.target.result);
+      // Buscar marker APP1 (EXIF)
+      if (view.getUint16(0, false) !== 0xFFD8) {
+        resolve(1); // No es JPEG
+        return;
+      }
+      let offset = 2;
+      while (offset < view.byteLength - 2) {
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+        if (marker === 0xFFE1) { // APP1
+          const length = view.getUint16(offset, false);
+          // Verificar "Exif\0\0"
+          if (view.getUint32(offset + 2, false) === 0x45786966) {
+            const tiffOffset = offset + 8;
+            const bigEndian = view.getUint16(tiffOffset, false) === 0x4D4D;
+            const ifdOffset = view.getUint32(tiffOffset + 4, bigEndian) + tiffOffset;
+            const numEntries = view.getUint16(ifdOffset, bigEndian);
+            for (let i = 0; i < numEntries; i++) {
+              const entryOffset = ifdOffset + 2 + (i * 12);
+              if (view.getUint16(entryOffset, bigEndian) === 0x0112) {
+                resolve(view.getUint16(entryOffset + 8, bigEndian));
+                return;
+              }
+            }
+          }
+          offset += length;
+        } else if ((marker & 0xFF00) === 0xFF00) {
+          offset += view.getUint16(offset, false);
+        } else {
+          break;
+        }
+      }
+      resolve(1); // Default
+    };
+    reader.readAsArrayBuffer(file.slice(0, 65536));
+  });
+}
+
+function rotateImage(file, orientation) {
+  return new Promise((resolve) => {
+    if (orientation === 1) {
+      resolve(file);
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      // Dimensiones según orientación
+      const swap = orientation >= 5 && orientation <= 8;
+      canvas.width = swap ? img.height : img.width;
+      canvas.height = swap ? img.width : img.height;
+      // Aplicar transformación
+      switch (orientation) {
+        case 2: ctx.transform(-1, 0, 0, 1, canvas.width, 0); break;
+        case 3: ctx.transform(-1, 0, 0, -1, canvas.width, canvas.height); break;
+        case 4: ctx.transform(1, 0, 0, -1, 0, canvas.height); break;
+        case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+        case 6: ctx.transform(0, 1, -1, 0, canvas.height, 0); break;
+        case 7: ctx.transform(0, -1, -1, 0, canvas.height, canvas.width); break;
+        case 8: ctx.transform(0, -1, 1, 0, 0, canvas.width); break;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        const rotated = new File([blob], file.name, { type: file.type });
+        resolve(rotated);
+      }, file.type, 0.92);
+    };
+    img.src = url;
+  });
+}
+
+async function autoRotateImage(file) {
+  const orientation = await getExifOrientation(file);
+  return rotateImage(file, orientation);
+}
+
+// ============================================
 // INICIALIZACIÓN
 // ============================================
 
@@ -313,7 +401,7 @@ dniFrontCaptureBtn?.addEventListener('click', () => {
   dniFrontInput.click();
 });
 
-dniFrontInput?.addEventListener('change', (e) => {
+dniFrontInput?.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
@@ -322,14 +410,16 @@ dniFrontInput?.addEventListener('change', (e) => {
     e.target.value = '';
     return;
   }
-  files.dniFront = file;
+  // Auto-rotar según EXIF
+  const rotatedFile = await autoRotateImage(file);
+  files.dniFront = rotatedFile;
   const reader = new FileReader();
   reader.onload = (ev) => {
     dniFrontPreview.src = ev.target.result;
     dniFrontPreview.classList.add('show');
     dniFrontArea.classList.add('has-file');
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(rotatedFile);
   // Resetear input para poder re-seleccionar el mismo archivo
   e.target.value = '';
 });
@@ -369,7 +459,7 @@ dniBackCaptureBtn?.addEventListener('click', () => {
   dniBackInput.click();
 });
 
-dniBackInput?.addEventListener('change', (e) => {
+dniBackInput?.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
@@ -378,14 +468,16 @@ dniBackInput?.addEventListener('change', (e) => {
     e.target.value = '';
     return;
   }
-  files.dniBack = file;
+  // Auto-rotar según EXIF
+  const rotatedFile = await autoRotateImage(file);
+  files.dniBack = rotatedFile;
   const reader = new FileReader();
   reader.onload = (ev) => {
     dniBackPreview.src = ev.target.result;
     dniBackPreview.classList.add('show');
     dniBackArea.classList.add('has-file');
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(rotatedFile);
   // Resetear input para poder re-seleccionar el mismo archivo
   e.target.value = '';
 });
@@ -568,7 +660,7 @@ cardCaptureBtn?.addEventListener('click', () => {
   cardInput.click();
 });
 
-cardInput?.addEventListener('change', (e) => {
+cardInput?.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
@@ -577,14 +669,16 @@ cardInput?.addEventListener('change', (e) => {
     e.target.value = '';
     return;
   }
-  files.cardPhoto = file;
+  // Auto-rotar según EXIF
+  const rotatedFile = await autoRotateImage(file);
+  files.cardPhoto = rotatedFile;
   const reader = new FileReader();
   reader.onload = (ev) => {
     cardPreview.src = ev.target.result;
     cardPreview.classList.add('show');
     cardArea.classList.add('has-file');
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(rotatedFile);
   // Resetear input para poder re-seleccionar el mismo archivo
   e.target.value = '';
 });
