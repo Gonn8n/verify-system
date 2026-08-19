@@ -383,13 +383,13 @@ function renderMedia(containerId, url, type) {
     `;
   } else {
     container.innerHTML = `
-      <div class="image-preview-container">
+      <div class="image-preview-wrapper">
         <img src="${url}" alt="Documento" data-rotation="0" onclick="openImageModal('${url}', parseInt(this.dataset.rotation || '0'))">
         <div class="media-actions">
           <button class="media-action-btn media-rotate" onclick="rotateMediaImage(this)" title="Rotar 90°">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
           </button>
-          <button class="media-action-btn media-zoom" onclick="openImageModal('${url}', parseInt(this.closest('.image-preview-container').querySelector('img').dataset.rotation || '0'))" title="Ver tamaño completo">
+          <button class="media-action-btn media-zoom" onclick="openImageModal('${url}', parseInt(this.closest('.image-preview-wrapper').querySelector('img').dataset.rotation || '0'))" title="Ver tamaño completo">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
           </button>
           <a href="${url}" download class="media-action-btn media-download" title="Descargar">
@@ -403,20 +403,13 @@ function renderMedia(containerId, url, type) {
 
 // Rotar imagen 90° en el admin
 function rotateMediaImage(btn) {
-  const container = btn.closest('.image-preview-container');
+  const container = btn.closest('.image-preview-wrapper');
   const img = container.querySelector('img');
   if (!img) return;
   const current = parseInt(img.dataset.rotation || '0', 10);
   const next = (current + 90) % 360;
   img.dataset.rotation = next;
   img.style.transform = `rotate(${next}deg)`;
-  if (next === 90 || next === 270) {
-    img.style.objectFit = 'cover';
-    img.style.maxHeight = '250px';
-  } else {
-    img.style.objectFit = '';
-    img.style.maxHeight = '';
-  }
 }
 
 // Modal de imagen a tamaño completo
