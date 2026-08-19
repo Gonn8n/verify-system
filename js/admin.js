@@ -475,12 +475,12 @@ function renderMedia(containerId, url, type) {
   } else {
     container.innerHTML = `
       <div class="image-preview-container">
-        <img src="${url}" alt="Documento" onclick="openImageModal('${url}')">
+        <img src="${url}" alt="Documento" data-rotation="0" onclick="openImageModal('${url}', parseInt(this.dataset.rotation || '0'))">
         <div class="media-actions">
           <button class="media-action-btn media-rotate" onclick="rotateMediaImage(this)" title="Rotar 90°">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
           </button>
-          <button class="media-action-btn media-zoom" onclick="openImageModal('${url}')" title="Ver tamaño completo">
+          <button class="media-action-btn media-zoom" onclick="openImageModal('${url}', parseInt(this.closest('.image-preview-container').querySelector('img').dataset.rotation || '0'))" title="Ver tamaño completo">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
           </button>
           <a href="${url}" download class="media-action-btn media-download" title="Descargar">
@@ -501,19 +501,25 @@ function rotateMediaImage(btn) {
   const current = parseInt(img.dataset.rotation || '0', 10);
   const next = (current + 90) % 360;
   img.dataset.rotation = next;
+  // Aplicar rotación
   img.style.transform = `rotate(${next}deg)`;
-  // Ajustar max-height para imágenes rotadas (lado ancho)
+  // Cuando está rotada (90 o 270), la imagen "vertical" se ve horizontal
+  // Quitamos object-fit para que llene el contenedor
   if (next === 90 || next === 270) {
-    img.style.maxHeight = '400px';
+    img.style.objectFit = 'cover';
+    img.style.maxHeight = '250px';
   } else {
+    img.style.objectFit = '';
     img.style.maxHeight = '';
   }
 }
 
 // Modal de imagen a tamaño completo
-function openImageModal(url) {
+function openImageModal(url, rotation = 0) {
   const existing = document.getElementById('imageModal');
   if (existing) existing.remove();
+
+  const rotationStyle = rotation ? `transform: rotate(${rotation}deg);` : '';
 
   const modal = document.createElement('div');
   modal.id = 'imageModal';
@@ -523,7 +529,7 @@ function openImageModal(url) {
       <button class="image-modal-close" onclick="closeImageModal()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
-      <img src="${url}" alt="Documento completo">
+      <img src="${url}" alt="Documento completo" style="${rotationStyle}">
       <a href="${url}" download class="image-modal-download" title="Descargar">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         Descargar

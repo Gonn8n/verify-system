@@ -508,7 +508,7 @@ p {
 .detail-panel {
   background: var(--color-white);
   width: 100%;
-  max-width: 900px;
+  max-width: 560px;
   max-height: 90vh;
   border-radius: 16px;
   overflow-y: auto;
