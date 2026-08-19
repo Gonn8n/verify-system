@@ -633,7 +633,8 @@ async function loadExistingAnalysis(verificationId) {
   // Summary
   if (data.summary) {
     document.getElementById('summarySection').style.display = '';
-    document.getElementById('summaryContent').innerHTML = `<ul class="summary-list">${data.summary.split('\n').filter(Boolean).map(l => `<li>${l}</li>`).join('')}</ul>`;
+    const summaryText = Array.isArray(data.summary) ? data.summary.join('\n') : String(data.summary);
+    document.getElementById('summaryContent').innerHTML = `<ul class="summary-list">${summaryText.split('\n').filter(Boolean).map(l => `<li>${l}</li>`).join('')}</ul>`;
   }
 
   // Findings
