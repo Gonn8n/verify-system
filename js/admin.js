@@ -441,6 +441,12 @@ async function openDetail(id) {
   // Resetear análisis
   document.getElementById('analysisResults').classList.add('hidden');
 
+  // Resetear a tab 1
+  document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.detail-tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('.detail-tab[data-tab="tabInfo"]').classList.add('active');
+  document.getElementById('tabInfo').classList.add('active');
+
   detailOverlay.classList.remove('hidden');
 
   // Cargar análisis existente
@@ -968,6 +974,19 @@ async function loadExistingAnalysis(verificationId) {
 
 // Event listener para botón de análisis
 document.getElementById('analyzeBtn')?.addEventListener('click', analyzeVerification);
+
+// ============================================
+// TABS DEL DETALLE
+// ============================================
+
+document.querySelectorAll('.detail-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.detail-tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
 
 // ============================================
 // INICIAR

@@ -357,7 +357,7 @@
   <!-- Modal: Detalle de Verificación -->
   <div class="detail-overlay hidden" id="detailOverlay">
     <div class="detail-panel">
-      <!-- Header mejorado -->
+      <!-- Header -->
       <div class="detail-header">
         <div class="detail-header-left">
           <h2 id="detailTitle">Detalle</h2>
@@ -366,138 +366,134 @@
         <button class="detail-close" id="closeDetail">&times;</button>
       </div>
       
-      <!-- Layout 2 columnas -->
-      <div class="detail-columns">
-        <!-- Columna izquierda: Info + Acciones -->
-        <div class="detail-col-left">
-          <!-- Datos del cliente -->
-          <div class="detail-section">
-            <div class="detail-section-title">Datos del Cliente</div>
-            <div class="detail-row">
-              <span class="detail-label">DNI</span>
-              <span class="detail-value" id="detailDni">-</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Email</span>
-              <span class="detail-value" id="detailEmail">-</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Teléfono</span>
-              <span class="detail-value" id="detailPhone">-</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Tarjeta</span>
-              <span class="detail-value" id="detailCard">-</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Código</span>
-              <span class="detail-value detail-code" id="detailCode">-</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Creado</span>
-              <span class="detail-value" id="detailCreated">-</span>
-            </div>
-            <div class="detail-row" id="detailLocationRow" style="display:none;">
-              <span class="detail-label">Ubicación</span>
-              <a class="detail-value detail-link" id="detailLocation" href="#" target="_blank">Ver en mapa</a>
-            </div>
+      <!-- Tabs -->
+      <div class="detail-tabs">
+        <button class="detail-tab active" data-tab="tabInfo">Datos del Cliente</button>
+        <button class="detail-tab" data-tab="tabDocs">Documentos</button>
+        <button class="detail-tab" data-tab="tabAgent">Análisis con Agente</button>
+      </div>
+      
+      <!-- Tab 1: Datos del Cliente -->
+      <div class="detail-tab-content active" id="tabInfo">
+        <div class="detail-section">
+          <div class="detail-row">
+            <span class="detail-label">DNI</span>
+            <span class="detail-value" id="detailDni">-</span>
           </div>
-
-          <!-- Cambiar Estado -->
-          <div class="detail-section">
-            <div class="detail-section-title">Cambiar Estado</div>
-            <div class="action-buttons">
-              <div class="action-row">
-                <button class="btn btn-sm" style="background: var(--color-pending); color: white;" data-status="pending">Pendiente</button>
-                <button class="btn btn-sm" style="background: var(--color-review); color: white;" data-status="in_review">En Revisión</button>
-              </div>
-              <div class="action-row">
-                <button class="btn btn-sm" style="background: var(--color-approved); color: white;" data-status="approved">Aprobado</button>
-                <button class="btn btn-sm" style="background: var(--color-rejected); color: white;" data-status="rejected">Rechazado</button>
-              </div>
-            </div>
+          <div class="detail-row">
+            <span class="detail-label">Email</span>
+            <span class="detail-value" id="detailEmail">-</span>
           </div>
-
-          <!-- Link de verificación -->
-          <div class="detail-section">
-            <div class="detail-section-title">Link de Verificación</div>
-            <div class="generated-link">
-              <span class="generated-link-text" id="detailLink">-</span>
-            </div>
-            <div class="share-buttons">
-              <button class="btn btn-secondary btn-sm" id="detailCopyBtn">Copiar</button>
-              <button class="btn btn-secondary btn-sm" id="detailEmailBtn">Email</button>
-              <button class="btn btn-secondary btn-sm" id="detailWhatsappBtn">WhatsApp</button>
-            </div>
+          <div class="detail-row">
+            <span class="detail-label">Teléfono</span>
+            <span class="detail-value" id="detailPhone">-</span>
           </div>
-
-          <!-- Zona de peligro -->
-          <div class="detail-section danger-section">
-            <button class="btn btn-danger btn-sm btn-full" id="detailDeleteBtn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              Eliminar verificación
-            </button>
+          <div class="detail-row">
+            <span class="detail-label">Tarjeta</span>
+            <span class="detail-value" id="detailCard">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Código</span>
+            <span class="detail-value detail-code" id="detailCode">-</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Creado</span>
+            <span class="detail-value" id="detailCreated">-</span>
+          </div>
+          <div class="detail-row" id="detailLocationRow" style="display:none;">
+            <span class="detail-label">Ubicación</span>
+            <a class="detail-value detail-link" id="detailLocation" href="#" target="_blank">Ver en mapa</a>
           </div>
         </div>
 
-        <!-- Columna derecha: Evidencia -->
-        <div class="detail-col-right">
-          <!-- Documentos -->
-          <div class="detail-section" id="detailDocuments">
-            <div class="detail-section-title">Documentos</div>
-            <div class="detail-media-grid">
-              <div class="detail-media">
-                <div class="detail-media-label">DNI Frente</div>
-                <div class="detail-media-preview" id="detailDniFront">
-                  <div class="detail-media-placeholder">No subido</div>
-                </div>
-              </div>
-              <div class="detail-media">
-                <div class="detail-media-label">DNI Dorso</div>
-                <div class="detail-media-preview" id="detailDniBack">
-                  <div class="detail-media-placeholder">No subido</div>
-                </div>
-              </div>
+        <!-- Cambiar Estado -->
+        <div class="detail-section">
+          <div class="detail-section-title">Cambiar Estado</div>
+          <div class="action-buttons">
+            <div class="action-row">
+              <button class="btn btn-sm" style="background: var(--color-pending); color: white;" data-status="pending">Pendiente</button>
+              <button class="btn btn-sm" style="background: var(--color-review); color: white;" data-status="in_review">En Revisión</button>
             </div>
-            <div class="detail-media">
-              <div class="detail-media-label">Prueba de Vida</div>
-              <div class="detail-media-preview" id="detailVideo">
-                <div class="detail-media-placeholder">No subido</div>
-              </div>
-            </div>
-            <div class="detail-media">
-              <div class="detail-media-label">Foto Tarjeta</div>
-              <div class="detail-media-preview" id="detailCardPhoto">
-                <div class="detail-media-placeholder">No subido</div>
-              </div>
+            <div class="action-row">
+              <button class="btn btn-sm" style="background: var(--color-approved); color: white;" data-status="approved">Aprobado</button>
+              <button class="btn btn-sm" style="background: var(--color-rejected); color: white;" data-status="rejected">Rechazado</button>
             </div>
           </div>
+        </div>
 
-          <!-- Análisis AI -->
-          <div class="detail-section" id="analysisSection">
-            <div class="detail-section-title">Análisis AI</div>
-            
-            <button class="btn btn-primary btn-sm btn-full" id="analyzeBtn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              Analizar con AI
-            </button>
-            
-            <div id="analysisResults" class="hidden">
-              <!-- Score circular -->
-              <div class="analysis-score-container">
-                <div class="analysis-score-ring" id="analysisScoreRing">
-                  <span class="score-value" id="analysisScoreValue">0</span>
-                  <span class="score-label">Confianza</span>
-                </div>
-                <div class="analysis-recommendation" id="analysisRecommendation"></div>
-              </div>
-              
-              <!-- Resumen -->
-              <div class="analysis-summary" id="summarySection">
-                <h4>Resumen del Análisis</h4>
-                <div id="summaryContent"></div>
-              </div>
-              
+        <!-- Link de verificación -->
+        <div class="detail-section">
+          <div class="detail-section-title">Link de Verificación</div>
+          <div class="generated-link">
+            <span class="generated-link-text" id="detailLink">-</span>
+          </div>
+          <div class="share-buttons">
+            <button class="btn btn-secondary btn-sm" id="detailCopyBtn">Copiar</button>
+            <button class="btn btn-secondary btn-sm" id="detailEmailBtn">Email</button>
+            <button class="btn btn-secondary btn-sm" id="detailWhatsappBtn">WhatsApp</button>
+          </div>
+        </div>
+
+        <!-- Zona de peligro -->
+        <div class="detail-section danger-section">
+          <button class="btn btn-danger btn-sm btn-full" id="detailDeleteBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Eliminar verificación
+          </button>
+        </div>
+      </div>
+      
+      <!-- Tab 2: Documentos -->
+      <div class="detail-tab-content" id="tabDocs">
+        <div class="detail-media">
+          <div class="detail-media-label">DNI Frente</div>
+          <div class="detail-media-preview" id="detailDniFront">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+        <div class="detail-media">
+          <div class="detail-media-label">DNI Dorso</div>
+          <div class="detail-media-preview" id="detailDniBack">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+        <div class="detail-media">
+          <div class="detail-media-label">Prueba de Vida</div>
+          <div class="detail-media-preview" id="detailVideo">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+        <div class="detail-media">
+          <div class="detail-media-label">Foto Tarjeta</div>
+          <div class="detail-media-preview" id="detailCardPhoto">
+            <div class="detail-media-placeholder">No subido</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tab 3: Análisis con Agente -->
+      <div class="detail-tab-content" id="tabAgent">
+        <button class="btn btn-primary btn-sm btn-full" id="analyzeBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          Verificar con Agente
+        </button>
+        
+        <div id="analysisResults" class="hidden">
+          <!-- Score circular -->
+          <div class="analysis-score-container">
+            <div class="analysis-score-ring" id="analysisScoreRing">
+              <span class="score-value" id="analysisScoreValue">0</span>
+              <span class="score-label">Confianza</span>
+            </div>
+            <div class="analysis-recommendation" id="analysisRecommendation"></div>
+          </div>
+          
+          <!-- Resumen -->
+          <div class="analysis-summary" id="summarySection">
+            <h4>Resumen del Análisis</h4>
+            <div id="summaryContent"></div>
+          </div>
+          
           <!-- Scores por documento -->
           <div class="analysis-scores">
             <div class="analysis-score-item">
@@ -516,31 +512,29 @@
               <span class="analysis-score-pct" id="cardScoreText">0%</span>
             </div>
           </div>
-              
-              <!-- Hallazgos del DNI -->
-              <div class="analysis-findings" id="findingsSection">
-                <h4>Hallazgos del Documento</h4>
-                <div id="findingsContent"></div>
-              </div>
-              
-              <!-- Consistencia del documento -->
-              <div class="analysis-consistency" id="consistencySection">
-                <h4>Consistencia del Documento</h4>
-                <div id="consistencyContent"></div>
-              </div>
-              
-              <!-- Coincidencia de datos -->
-              <div class="analysis-data-match" id="dataMatchSection">
-                <h4>Coincidencia de Datos</h4>
-                <div id="dataMatchContent"></div>
-              </div>
-              
-              <!-- Señales de fraude -->
-              <div class="analysis-fraud-signals" id="fraudSignalsSection">
-                <h4>Señales de Alerta</h4>
-                <div id="fraudSignalsContent"></div>
-              </div>
-            </div>
+          
+          <!-- Hallazgos del documento -->
+          <div class="analysis-findings" id="findingsSection">
+            <h4>Hallazgos del Documento</h4>
+            <div id="findingsContent"></div>
+          </div>
+          
+          <!-- Consistencia del documento -->
+          <div class="analysis-consistency" id="consistencySection">
+            <h4>Consistencia del Documento</h4>
+            <div id="consistencyContent"></div>
+          </div>
+          
+          <!-- Coincidencia de datos -->
+          <div class="analysis-data-match" id="dataMatchSection">
+            <h4>Coincidencia de Datos</h4>
+            <div id="dataMatchContent"></div>
+          </div>
+          
+          <!-- Señales de fraude -->
+          <div class="analysis-fraud-signals" id="fraudSignalsSection">
+            <h4>Señales de Alerta</h4>
+            <div id="fraudSignalsContent"></div>
           </div>
         </div>
       </div>
