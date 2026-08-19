@@ -44,6 +44,17 @@ const closeDetail = document.getElementById('closeDetail');
 const filterTabs = document.querySelectorAll('.filter-tab');
 const toast = document.getElementById('toast');
 
+// Confirm modal elements
+const confirmModal = document.getElementById('confirmModal');
+const confirmModalTitle = document.getElementById('confirmModalTitle');
+const confirmModalText = document.getElementById('confirmModalText');
+const confirmModalIcon = document.getElementById('confirmModalIcon');
+const confirmInputGroup = document.getElementById('confirmInputGroup');
+const confirmInputLabel = document.getElementById('confirmInputLabel');
+const confirmInput = document.getElementById('confirmInput');
+const confirmAcceptBtn = document.getElementById('confirmAcceptBtn');
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
 // ============================================
 // AUTENTICACIÓN
 // ============================================
@@ -374,7 +385,6 @@ async function openDetail(id) {
 
   // Llenar datos
   document.getElementById('detailTitle').textContent = `${verification.first_name} ${verification.last_name}`;
-  document.getElementById('detailName').textContent = `${verification.first_name} ${verification.last_name}`;
   document.getElementById('detailDni').textContent = verification.dni;
   document.getElementById('detailEmail').textContent = verification.email;
   document.getElementById('detailPhone').textContent = verification.phone;
@@ -435,6 +445,9 @@ async function openDetail(id) {
 
   // Cargar análisis existente
   loadExistingAnalysis(id);
+
+  // Botón eliminar
+  document.getElementById('detailDeleteBtn').onclick = () => deleteVerification(id);
 }
 
 function renderMedia(containerId, url, type) {
@@ -522,7 +535,14 @@ async function updateStatus(newStatus) {
   if (!currentDetailId) return;
 
   const statusLabel = getStatusLabel(newStatus);
-  if (!confirm(`¿Cambiar estado a "${statusLabel}"?`)) return;
+  const confirmed = await showConfirmModal({
+    title: 'Cambiar estado',
+    text: `¿Cambiar estado a "${statusLabel}"?`,
+    isDanger: newStatus === 'rejected',
+    acceptLabel: newStatus === 'rejected' ? 'Rechazar' : 'Confirmar'
+  });
+
+  if (!confirmed) return;
 
   const { error } = await supabaseClient
     .from('verifications')
@@ -548,6 +568,42 @@ async function updateStatus(newStatus) {
   if (updated) {
     document.getElementById('detailStatusBadge').innerHTML = `<span class="badge badge-${newStatus.replace('in_review', 'review')}">${getStatusLabel(newStatus)}</span>`;
   }
+}
+
+// ============================================
+// ELIMINAR VERIFICACIÓN
+// ============================================
+
+async function deleteVerification(id) {
+  const verification = allVerifications.find(v => v.id === id);
+  if (!verification) return;
+
+  const confirmed = await showConfirmModal({
+    title: 'Eliminar verificación',
+    text: `Se eliminará permanentemente la verificación de ${escapeHtml(verification.first_name)} ${escapeHtml(verification.last_name)} (${escapeHtml(verification.dni)}). Esta acción no se puede deshacer.`,
+    requireWord: true,
+    isDanger: true,
+    acceptLabel: 'Eliminar'
+  });
+
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient.rpc('delete_verification', { p_id: id });
+
+  if (error) {
+    console.error('Error deleting verification:', error);
+    showToast('Error al eliminar la verificación');
+    return;
+  }
+
+  showToast('Verificación eliminada');
+
+  // Cerrar detail panel
+  detailOverlay.classList.add('hidden');
+  currentDetailId = null;
+
+  // Recargar datos
+  await loadVerifications();
 }
 
 // ============================================
@@ -583,6 +639,69 @@ async function sendStatusEmail(verificationId, status) {
 }
 
 // ============================================
+// CONFIRM MODAL CUSTOM
+// ============================================
+
+function getRandomWord() {
+  const words = ['PALOMA', 'MURCIELAGO', 'CONEJO', 'JIRABA', 'TORTUGA', 'BUHO', 'PINGUINO', 'CABALLO', 'DELFIN', 'AGUILA'];
+  return words[Math.floor(Math.random() * words.length)];
+}
+
+function showConfirmModal({ title, text, requireWord = false, isDanger = false, acceptLabel = 'Confirmar' }) {
+  return new Promise((resolve) => {
+    confirmModalTitle.textContent = title;
+    confirmModalText.textContent = text;
+    confirmAcceptBtn.textContent = acceptLabel;
+    confirmAcceptBtn.className = isDanger ? 'btn btn-danger' : 'btn btn-primary';
+
+    if (isDanger) {
+      confirmModalIcon.className = 'confirm-modal-icon danger';
+      confirmModalIcon.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    } else {
+      confirmModalIcon.className = 'confirm-modal-icon';
+      confirmModalIcon.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    }
+
+    if (requireWord) {
+      const word = getRandomWord();
+      confirmInputGroup.classList.remove('hidden');
+      confirmInputLabel.textContent = `Escribí "${word}" para confirmar:`;
+      confirmInput.value = '';
+      confirmInput.className = 'confirm-modal-input';
+      confirmInput.dataset.word = word;
+      setTimeout(() => confirmInput.focus(), 100);
+    } else {
+      confirmInputGroup.classList.add('hidden');
+    }
+
+    confirmModal.classList.remove('hidden');
+
+    const cleanup = (result) => {
+      confirmModal.classList.add('hidden');
+      confirmAcceptBtn.onclick = null;
+      confirmCancelBtn.onclick = null;
+      resolve(result);
+    };
+
+    confirmAcceptBtn.onclick = () => {
+      if (requireWord) {
+        const entered = confirmInput.value.trim().toUpperCase();
+        const expected = confirmInput.dataset.word;
+        if (entered !== expected) {
+          confirmInput.classList.add('error');
+          confirmInput.value = '';
+          confirmInput.focus();
+          return;
+        }
+      }
+      cleanup(true);
+    };
+
+    confirmCancelBtn.onclick = () => cleanup(false);
+  });
+}
+
+// ============================================
 // TOAST
 // ============================================
 
@@ -600,6 +719,10 @@ function showToast(message) {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (!confirmModal.classList.contains('hidden')) {
+      confirmModal.classList.add('hidden');
+      return;
+    }
     if (!newModal.classList.contains('hidden')) {
       newModal.classList.add('hidden');
     }
@@ -686,21 +809,26 @@ function renderAnalysis(analysis) {
   // Scores por documento
   setScoreBar('frontScore', 'frontScoreText', analysis.dni_front_score || 0);
   setScoreBar('backScore', 'backScoreText', analysis.dni_back_score || 0);
+  setScoreBar('cardScore', 'cardScoreText', analysis.card_photo_score || 0);
 
   // Hallazgos del DNI
   const frontFindings = analysis.dni_front_findings || [];
   const backFindings = analysis.dni_back_findings || [];
+  const cardFindings = analysis.card_photo_findings || [];
   const findingsSection = document.getElementById('findingsSection');
   const findingsContent = document.getElementById('findingsContent');
 
-  if (frontFindings.length > 0 || backFindings.length > 0) {
+  if (frontFindings.length > 0 || backFindings.length > 0 || cardFindings.length > 0) {
     findingsSection.classList.remove('hidden');
     let findingsHtml = '';
     if (frontFindings.length > 0) {
-      findingsHtml += '<div class="findings-group"><span class="findings-label">Frente:</span><ul>' + frontFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
+      findingsHtml += '<div class="findings-group"><span class="findings-label">Frente DNI:</span><ul>' + frontFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
     }
     if (backFindings.length > 0) {
-      findingsHtml += '<div class="findings-group"><span class="findings-label">Dorso:</span><ul>' + backFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
+      findingsHtml += '<div class="findings-group"><span class="findings-label">Dorso DNI:</span><ul>' + backFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
+    }
+    if (cardFindings.length > 0) {
+      findingsHtml += '<div class="findings-group"><span class="findings-label">Tarjeta:</span><ul>' + cardFindings.map(f => `<li>${f}</li>`).join('') + '</ul></div>';
     }
     findingsContent.innerHTML = findingsHtml;
   } else {
@@ -733,6 +861,9 @@ function renderAnalysis(analysis) {
   // Data match
   const dataMatch = analysis.data_match || {};
   const dataMatchContent = document.getElementById('dataMatchContent');
+  const cardStatus = dataMatch.card_match
+    ? `✓ Coincide (${dataMatch.extracted_card_last_four || '?'})`
+    : (dataMatch.operator_card_last_four ? `✗ No coincide (${dataMatch.extracted_card_last_four || 'sin dato'} vs ${dataMatch.operator_card_last_four})` : '- Sin dato');
   dataMatchContent.innerHTML = `
     <div class="match-row">
       <span class="match-label">Nombre: <strong>${dataMatch.extracted_name || '-'}</strong></span>
@@ -747,9 +878,9 @@ function renderAnalysis(analysis) {
       </span>
     </div>
     <div class="match-row">
-      <span class="match-label">Tarjeta: <strong>${dataMatch.card_match ? 'Verificado' : 'No verificable'}</strong></span>
+      <span class="match-label">Tarjeta: <strong>${dataMatch.operator_card_last_four || 'No proporcionado'}</strong></span>
       <span class="match-status ${dataMatch.card_match ? 'match-ok' : 'match-warn'}">
-        ${dataMatch.card_match ? '✓ Coincide' : '- Sin dato'}
+        ${cardStatus}
       </span>
     </div>
   `;
@@ -820,6 +951,8 @@ async function loadExistingAnalysis(verificationId) {
         dni_back_score: data.dni_back_score,
         dni_front_findings: data.dni_front_findings,
         dni_back_findings: data.dni_back_findings,
+        card_photo_score: data.card_photo_score,
+        card_photo_findings: data.card_photo_findings,
         recommendation: data.recommendation,
         fraud_signals: data.fraud_signals,
         data_match: data.data_match,
