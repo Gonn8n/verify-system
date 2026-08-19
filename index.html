@@ -4,135 +4,112 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verify - Iniciar Sesión</title>
+  <meta name="description" content="Panel de administración del sistema de verificación de identidad para ecommerce.">
+  <meta name="theme-color" content="#DC2626">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <meta property="og:title" content="Verify - Panel de Administración">
+  <meta property="og:description" content="Sistema de verificación de identidad para ecommerce.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
-  <style>
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: var(--color-bg);
-    }
-    .login-container {
-      width: 100%;
-      max-width: 400px;
-      padding: 20px;
-    }
-    .login-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-    .login-logo {
-      width: 80px;
-      height: 80px;
-      background: var(--color-primary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px;
-      box-shadow: var(--shadow-lg);
-    }
-    .login-logo span {
-      color: white;
-      font-size: 1.25rem;
-      font-weight: 800;
-    }
-    .login-card {
-      background: var(--color-white);
-      border-radius: var(--radius-lg);
-      padding: 32px;
-      box-shadow: var(--shadow-md);
-    }
-    .login-card h1 {
-      font-size: 1.25rem;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .login-card .subtitle {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .error-message {
-      background: #FEE2E2;
-      color: #991B1B;
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem;
-      margin-bottom: 16px;
-      display: none;
-    }
-    .error-message.show {
-      display: block;
-    }
-    .login-footer {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 0.8rem;
-      color: var(--color-text-secondary);
-    }
-  </style>
 </head>
-<body>
+<body class="login-page">
+  <!-- Sprite de iconos SVG -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M12 2 L20 5.5 V11 C20 16.5 16.6 20.4 12 22 C7.4 20.4 4 16.5 4 11 V5.5 Z"/>
+      <path d="M8.4 12.2 L11 14.8 L15.6 9.8" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="m22 7-10 6L2 7"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </symbol>
+    <symbol id="i-alert-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </symbol>
+  </svg>
+
   <div class="login-container">
     <div class="login-header">
-      <div class="login-logo">
-        <span>V</span>
+      <div class="brand-mark-ring">
+        <div class="brand-mark brand-mark-lg">
+          <svg aria-hidden="true"><use href="#i-shield"/></svg>
+        </div>
       </div>
       <h1>Verify</h1>
       <p class="subtitle">Panel de administración</p>
     </div>
-    
+
     <div class="login-card">
-      <h1>Iniciar Sesión</h1>
+      <h2>Iniciar Sesión</h2>
       <p class="subtitle">Ingresá tus credenciales para continuar</p>
-      
-      <div id="errorMessage" class="error-message"></div>
-      
-      <form id="loginForm">
+
+      <div id="errorMessage" class="alert alert-danger error-message" role="alert">
+        <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+        <span id="errorText"></span>
+      </div>
+
+      <form id="loginForm" novalidate>
         <div class="form-group">
           <label class="form-label" for="email">Email</label>
-          <input 
-            type="email" 
-            id="email" 
-            class="form-input" 
-            placeholder="tu@email.com"
-            required
-            autocomplete="email"
-          >
+          <div class="input-with-icon">
+            <svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>
+            <input
+              type="email"
+              id="email"
+              class="form-input"
+              placeholder="tu@email.com"
+              required
+              autocomplete="email"
+            >
+          </div>
         </div>
-        
+
         <div class="form-group">
           <label class="form-label" for="password">Contraseña</label>
           <div class="password-wrapper">
-            <input 
-              type="password" 
-              id="password" 
-              class="form-input" 
+            <input
+              type="password"
+              id="password"
+              class="form-input"
               placeholder="••••••••"
               required
               autocomplete="current-password"
             >
             <button type="button" class="password-toggle" id="togglePassword" aria-label="Mostrar contraseña">
-              <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <svg id="eyeOffIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                <line x1="1" y1="1" x2="23" y2="23"></line>
-              </svg>
+              <svg id="eyeIcon" class="icon" width="20" height="20" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg id="eyeOffIcon" class="icon hidden" width="20" height="20" aria-hidden="true"><use href="#i-eye-off"/></svg>
             </button>
           </div>
         </div>
-        
+
         <button type="submit" class="btn btn-primary" id="submitBtn">
           <span id="btnText">Iniciar Sesión</span>
           <div id="btnSpinner" class="spinner hidden" style="width: 20px; height: 20px; border-width: 2px;"></div>
         </button>
       </form>
+
+      <div class="trust-line">
+        <svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>
+        <span>Seguridad de nivel bancario · Supabase + RLS</span>
+      </div>
     </div>
-    
+
     <div class="login-footer">
       <p>Sistema de verificación de identidad</p>
     </div>

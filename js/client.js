@@ -27,6 +27,79 @@ let files = {
 };
 
 // ============================================
+// HELPERS DE UI
+// ============================================
+
+const STEP_META = {
+  2:  { label: 'Introducción', index: 0 },
+  3:  { label: 'Celular',       index: 1 },
+  4:  { label: 'DNI frente',    index: 2 },
+  5:  { label: 'DNI dorso',     index: 3 },
+  6:  { label: 'Video',         index: 4 },
+  7:  { label: 'Permisos',      index: 5 },
+  8:  { label: 'Grabación',     index: 6 },
+  9:  { label: 'Tarjeta',       index: 7 },
+  10: { label: 'Finalización',  index: 8 }
+};
+
+const TOTAL_STEPS = 8;
+
+// Error inline bajo un elemento (reemplaza alert())
+function showFieldError(areaEl, message) {
+  clearFieldError(areaEl);
+  const err = document.createElement('div');
+  err.className = 'field-error';
+  err.setAttribute('role', 'alert');
+  err.innerHTML = `
+    <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+    <span>${message}</span>
+  `;
+  areaEl.classList.add('is-invalid');
+  areaEl.after(err);
+  err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function clearFieldError(areaEl) {
+  if (!areaEl) return;
+  areaEl.classList.remove('is-invalid');
+  const next = areaEl.nextElementSibling;
+  if (next && next.classList && next.classList.contains('field-error')) {
+    next.remove();
+  }
+}
+
+// Error inline a nivel de step (ej: permisos cámara)
+function showStepError(errorEl, message) {
+  if (!errorEl) return;
+  errorEl.querySelector('span').textContent = message;
+  errorEl.classList.add('show');
+}
+
+function clearStepError(errorEl) {
+  if (errorEl) errorEl.classList.remove('show');
+}
+
+// Stepper de progreso global
+function updateProgress(step) {
+  const meta = STEP_META[step];
+  if (!meta) return;
+
+  const stepper = document.getElementById('stepper');
+  if (!stepper) return;
+
+  // Ocultar en el paso de transición (QR) y en la finalización
+  if (step === 3 || step === 10) {
+    stepper.classList.add('hidden');
+    return;
+  }
+
+  stepper.classList.remove('hidden');
+  document.getElementById('stepperCount').textContent = `Paso ${meta.index + 1} de ${TOTAL_STEPS}`;
+  document.getElementById('stepperLabel').textContent = meta.label;
+  document.getElementById('stepperFill').style.width = (meta.index / TOTAL_STEPS * 100) + '%';
+}
+
+// ============================================
 // INICIALIZACIÓN
 // ============================================
 
@@ -85,7 +158,9 @@ function showError(message) {
   document.querySelector('.verify-content').innerHTML = `
     <div class="step-container active">
       <div class="intro-card text-center">
-        <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+        <div class="status-icon status-icon-error">
+          <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+        </div>
         <h2>Error</h2>
         <p>${message}</p>
       </div>
@@ -94,18 +169,43 @@ function showError(message) {
 }
 
 function showCompletedMessage() {
+  const status = verificationData ? verificationData.status : '';
+  const isApproved = status === 'approved';
+  const isRejected = status === 'rejected';
+
+  let icon, iconClass, title, body;
+
+  if (isApproved) {
+    icon = 'i-check-circle';
+    iconClass = 'status-icon-success';
+    title = 'Verificación aprobada';
+    body = 'Tu identidad fue verificada correctamente. ¡Tu compra está aprobada!';
+  } else if (isRejected) {
+    icon = 'i-x-circle';
+    iconClass = 'status-icon-error';
+    title = 'Verificación rechazada';
+    body = 'No pudimos verificar tu identidad. Por favor, contactá al comercio para más información.';
+  } else {
+    icon = 'i-check-circle';
+    iconClass = 'status-icon-success';
+    title = 'Solicitud enviada con éxito';
+    body = 'Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.';
+  }
+
+  const badgeHtml = (!isApproved && !isRejected)
+    ? `<span class="badge badge-pending">Estado: En revisión</span>`
+    : '';
+
   document.querySelector('.verify-content').innerHTML = `
     <div class="step-container active">
       <div class="intro-card">
         <div class="success-container">
-          <div class="success-icon-large">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
+          <div class="status-icon ${iconClass}">
+            <svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg>
           </div>
-          <h1>Validación en proceso.</h1>
-          <p>Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.</p>
+          <h1>${title}</h1>
+          <p>${body}</p>
+          ${badgeHtml}
         </div>
       </div>
     </div>
@@ -122,6 +222,7 @@ function showStep(step) {
   if (stepEl) {
     stepEl.classList.add('active');
     currentStep = step;
+    updateProgress(step);
   }
 }
 
@@ -137,10 +238,10 @@ function generateQR() {
   const qrContainer = document.getElementById('qrCode');
   if (qrContainer) {
     qrContainer.innerHTML = `
-      <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block;">
+      <div class="qr-frame">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR Code">
       </div>
-      <p style="margin-top: 12px; font-size: 0.8rem; color: var(--color-text-secondary);">Escaneá el QR y seguí desde tu celular</p>
+      <p class="caption mt-3">Escaneá el QR y seguí desde tu celular</p>
     `;
   }
 }
@@ -202,6 +303,7 @@ dniFrontInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) {
     files.dniFront = file;
+    clearFieldError(dniFrontArea);
     const reader = new FileReader();
     reader.onload = (e) => {
       dniFrontPreview.src = e.target.result;
@@ -214,7 +316,7 @@ dniFrontInput?.addEventListener('change', (e) => {
 
 document.getElementById('nextDniFrontBtn')?.addEventListener('click', () => {
   if (!files.dniFront) {
-    alert('Por favor, subí una foto del frente de tu DNI');
+    showFieldError(dniFrontArea, 'Por favor, subí una foto del frente de tu DNI');
     return;
   }
   showStep(5);
@@ -245,6 +347,7 @@ dniBackInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) {
     files.dniBack = file;
+    clearFieldError(dniBackArea);
     const reader = new FileReader();
     reader.onload = (e) => {
       dniBackPreview.src = e.target.result;
@@ -257,7 +360,7 @@ dniBackInput?.addEventListener('change', (e) => {
 
 document.getElementById('nextDniBackBtn')?.addEventListener('click', () => {
   if (!files.dniBack) {
-    alert('Por favor, subí una foto del dorso de tu DNI');
+    showFieldError(dniBackArea, 'Por favor, subí una foto del dorso de tu DNI');
     return;
   }
   showStep(6);
@@ -284,24 +387,36 @@ document.getElementById('backVideoIntroBtn')?.addEventListener('click', () => {
 // ============================================
 
 document.getElementById('okPermissionsBtn')?.addEventListener('click', async () => {
+  clearStepError(document.getElementById('permissionError'));
   try {
     // Intentar obtener cámara frontal para video
-    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+    mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' },
-      audio: true 
+      audio: true
     });
-    
+
     // Mostrar preview
     const preview = document.getElementById('cameraPreview');
     preview.srcObject = mediaStream;
     preview.classList.add('active');
-    
+
     showStep(8);
   } catch (err) {
     console.error('Camera error:', err);
-    alert('No se pudo acceder a la cámara. Por favor, verificá los permisos del navegador.');
+    showStepError(
+      document.getElementById('permissionError'),
+      'No se pudo acceder a la cámara. Verificá los permisos del navegador e intentá de nuevo.'
+    );
   }
 });
+
+// Inyectar el dominio real del sitio en el paso de permisos
+(function setSiteDomain() {
+  const el = document.getElementById('siteDomain');
+  if (el && SUPABASE_CONFIG && SUPABASE_CONFIG.domain) {
+    el.textContent = SUPABASE_CONFIG.domain.replace(/^https?:\/\//, '');
+  }
+})();
 
 // ============================================
 // STEP 8: GRABAR VIDEO
@@ -333,12 +448,13 @@ recordBtn?.addEventListener('click', () => {
   mediaRecorder.onstop = () => {
     recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
     files.lifeProofVideo = recordedBlob;
-    
+
     // Mostrar preview
     const url = URL.createObjectURL(recordedBlob);
     videoPreview.src = url;
     videoPreview.classList.add('show');
-    
+    clearFieldError(videoPreview);
+
     // Detener cámara
     stopCamera();
   };
@@ -371,7 +487,7 @@ function stopCamera() {
 
 document.getElementById('nextRecordBtn')?.addEventListener('click', () => {
   if (!files.lifeProofVideo) {
-    alert('Por favor, grabá un video de prueba de vida');
+    showFieldError(document.getElementById('videoPreview'), 'Por favor, grabá un video de prueba de vida');
     return;
   }
   showStep(9);
@@ -416,6 +532,7 @@ cardInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) {
     files.cardPhoto = file;
+    clearFieldError(cardArea);
     const reader = new FileReader();
     reader.onload = (e) => {
       cardPreview.src = e.target.result;
@@ -428,7 +545,7 @@ cardInput?.addEventListener('change', (e) => {
 
 document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
   if (!files.cardPhoto) {
-    alert('Por favor, subí una foto de tu tarjeta');
+    showFieldError(cardArea, 'Por favor, subí una foto de tu tarjeta');
     return;
   }
   
@@ -498,7 +615,15 @@ async function uploadFiles() {
 
   if (error) {
     console.error('Error updating verification:', error);
-    alert('Error al guardar la verificación. Por favor, intentá de nuevo.');
+    const cardStep = document.getElementById('step9');
+    if (cardStep) {
+      const errEl = cardStep.querySelector('.inline-error');
+      if (errEl) {
+        errEl.querySelector('span').textContent = 'Error al guardar la verificación. Por favor, intentá de nuevo.';
+        errEl.classList.add('show');
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
   }
 }
 

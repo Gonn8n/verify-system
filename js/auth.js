@@ -18,6 +18,7 @@ const togglePassword = document.getElementById('togglePassword');
 const eyeIcon = document.getElementById('eyeIcon');
 const eyeOffIcon = document.getElementById('eyeOffIcon');
 const errorMessage = document.getElementById('errorMessage');
+const errorText = document.getElementById('errorText');
 const submitBtn = document.getElementById('submitBtn');
 const btnText = document.getElementById('btnText');
 const btnSpinner = document.getElementById('btnSpinner');
@@ -32,7 +33,7 @@ togglePassword.addEventListener('click', () => {
 
 // Mostrar error
 function showError(message) {
-  errorMessage.textContent = message;
+  errorText.textContent = message;
   errorMessage.classList.add('show');
 }
 
@@ -40,6 +41,10 @@ function showError(message) {
 function hideError() {
   errorMessage.classList.remove('show');
 }
+
+// Limpiar el error al empezar a escribir
+emailInput.addEventListener('input', hideError);
+passwordInput.addEventListener('input', hideError);
 
 // Loading state
 function setLoading(loading) {

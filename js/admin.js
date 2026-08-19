@@ -62,8 +62,10 @@ async function checkAuth() {
   }
 
   currentUser = adminUser;
-  userEmail.textContent = session.user.email;
-  
+  const email = session.user.email || '';
+  userEmail.textContent = email;
+  document.getElementById('userAvatar').textContent = (email.charAt(0) || 'V').toUpperCase();
+
   // Cargar verificaciones
   await loadVerifications();
 }
@@ -86,7 +88,7 @@ async function loadVerifications() {
 
   if (error) {
     console.error('Error loading verifications:', error);
-    showToast('Error al cargar verificaciones');
+    showToast('Error al cargar verificaciones', 'error');
     return;
   }
 
@@ -144,28 +146,35 @@ function renderList() {
   if (filtered.length === 0) {
     verificationList.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
+        <svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg>
         <p>${currentFilter === 'all' ? 'Cargá una nueva verificación para comenzar' : 'No hay verificaciones con este estado'}</p>
       </div>
     `;
     return;
   }
 
-  verificationList.innerHTML = filtered.map(v => `
+  verificationList.innerHTML = filtered.map(v => {
+    const initials = ((v.first_name || '')[0] || '') + ((v.last_name || '')[0] || '');
+    return `
     <div class="admin-card status-${v.status}" data-id="${v.id}">
-      <div class="admin-card-header">
-        <div>
-          <div class="admin-card-name">${v.first_name} ${v.last_name}</div>
-          <div class="admin-card-code">${v.unique_code}</div>
+      <div class="avatar">${initials || '?'}</div>
+      <div class="admin-card-body">
+        <div class="admin-card-header">
+          <div>
+            <div class="admin-card-name">${v.first_name} ${v.last_name}</div>
+            <div class="admin-card-code">${v.unique_code}</div>
+          </div>
+          <span class="badge badge-dot badge-${v.status.replace('in_review', 'review')}">${getStatusLabel(v.status)}</span>
         </div>
-        <span class="badge badge-${v.status.replace('in_review', 'review')}">${getStatusLabel(v.status)}</span>
+        <div class="admin-card-meta">
+          <span>DNI: ${v.dni}</span>
+          <span>${formatDate(v.created_at)}</span>
+        </div>
       </div>
-      <div class="admin-card-meta">
-        <span>DNI: ${v.dni}</span>
-        <span>${formatDate(v.created_at)}</span>
-      </div>
+      <svg class="icon admin-card-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   // Click en cards
   document.querySelectorAll('.admin-card').forEach(card => {
@@ -251,7 +260,7 @@ saveNewBtn.addEventListener('click', async () => {
 
   if (error) {
     console.error('Error creating verification:', error);
-    showToast('Error al crear verificación');
+    showToast('Error al crear verificación', 'error');
     saveNewBtn.disabled = false;
     saveNewBtn.textContent = 'Crear Verificación';
     return;
@@ -269,7 +278,7 @@ saveNewBtn.addEventListener('click', async () => {
   // Recargar lista
   await loadVerifications();
   
-  showToast('Verificación creada exitosamente');
+  showToast('Verificación creada exitosamente', 'success');
 });
 
 // ============================================
@@ -280,7 +289,7 @@ function setupLinkButtons(url, email, firstName) {
   // Copy
   copyLinkBtn.onclick = () => {
     navigator.clipboard.writeText(url);
-    showToast('Link copiado');
+    showToast('Link copiado', 'success');
   };
 
   // Email
@@ -325,7 +334,7 @@ async function openDetail(id) {
   // Configurar botones de link del detalle
   document.getElementById('detailCopyBtn').onclick = () => {
     navigator.clipboard.writeText(verificationUrl);
-    showToast('Link copiado');
+    showToast('Link copiado', 'success');
   };
 
   document.getElementById('detailEmailBtn').onclick = () => {
@@ -356,7 +365,13 @@ async function openDetail(id) {
 function renderMedia(containerId, url, type) {
   const container = document.getElementById(containerId);
   if (!url) {
-    container.innerHTML = '<div class="detail-media-placeholder">No subido</div>';
+    const icon = type === 'video' ? 'i-video' : 'i-id-card';
+    container.innerHTML = `
+      <div class="detail-media-placeholder">
+        <svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg>
+        No subido
+      </div>
+    `;
     return;
   }
 
@@ -390,14 +405,14 @@ async function updateStatus(newStatus) {
 
   if (error) {
     console.error('Error updating status:', error);
-    showToast('Error al actualizar estado');
+    showToast('Error al actualizar estado', 'error');
     return;
   }
 
   // Enviar email de notificación
   await sendStatusEmail(currentDetailId, newStatus);
 
-  showToast(`Estado cambiado a: ${getStatusLabel(newStatus)}`);
+  showToast(`Estado cambiado a: ${getStatusLabel(newStatus)}`, 'success');
   
   // Recargar datos
   await loadVerifications();
@@ -444,8 +459,12 @@ async function sendStatusEmail(verificationId, status) {
 // TOAST
 // ============================================
 
-function showToast(message) {
+function showToast(message, type) {
   toast.textContent = message;
+  toast.classList.remove('toast-success', 'toast-error');
+  if (type) {
+    toast.classList.add('toast-' + type);
+  }
   toast.classList.remove('hidden');
   setTimeout(() => {
     toast.classList.add('hidden');
