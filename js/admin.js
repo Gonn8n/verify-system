@@ -421,9 +421,11 @@ function renderMedia(containerId, url, type) {
       </div>
     `;
   } else {
+    const savedRotation = parseInt(localStorage.getItem('rotation_' + url) || '0', 10);
+    const rotationStyle = savedRotation ? `transform: rotate(${savedRotation}deg);` : '';
     container.innerHTML = `
       <div class="image-preview-wrapper">
-        <img src="${url}" alt="Documento" data-rotation="0" onclick="openImageModal('${url}', parseInt(this.dataset.rotation || '0'))">
+        <img src="${url}" alt="Documento" data-rotation="${savedRotation}" style="${rotationStyle}" onclick="openImageModal('${url}', parseInt(this.dataset.rotation || '0'))">
         <div class="media-actions">
           <button class="media-action-btn media-rotate" onclick="rotateMediaImage(this)" title="Rotar 90°">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
@@ -449,6 +451,8 @@ function rotateMediaImage(btn) {
   const next = (current + 90) % 360;
   img.dataset.rotation = next;
   img.style.transform = `rotate(${next}deg)`;
+  // Persist rotation
+  localStorage.setItem('rotation_' + img.src, next);
 }
 
 // Modal de imagen a tamaño completo
@@ -564,12 +568,19 @@ async function sendStatusEmail(verificationId, status) {
 // ELIMINAR VERIFICACIÓN
 // ============================================
 
+const CONFIRM_WORDS = ['PALOMA', 'MURCIELAGO', 'ELEFANTE', 'CANGREJO', 'TORTUGA', 'JIRAFA', 'COCODRILO', 'BALLENA', 'PUMA', 'CONDOR'];
+
+function getRandomWord() {
+  return CONFIRM_WORDS[Math.floor(Math.random() * CONFIRM_WORDS.length)];
+}
+
 async function deleteVerification(id, name) {
+  const word = getRandomWord();
   showConfirmModal({
     title: 'Eliminar verificación',
-    text: `Vas a eliminar la verificación de ${name}. Esta acción no se puede deshacer.`,
+    text: `Vas a eliminar la verificación de ${name}. Escribí "${word}" para confirmar. Esta acción no se puede deshacer.`,
     requireWord: true,
-    confirmWord: 'PALOMA',
+    confirmWord: word,
     danger: true,
     onConfirm: async () => {
       try {
@@ -640,19 +651,22 @@ async function loadExistingAnalysis(verificationId) {
   // Findings
   if (data.findings) {
     document.getElementById('findingsSection').style.display = '';
-    document.getElementById('findingsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${data.findings}</p>`;
+    const findingsText = Array.isArray(data.findings) ? data.findings.join('\n') : String(data.findings);
+    document.getElementById('findingsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${findingsText}</p>`;
   }
 
   // Data match
   if (data.data_consistency) {
     document.getElementById('dataMatchSection').style.display = '';
-    document.getElementById('dataMatchContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${data.data_consistency}</p>`;
+    const consistencyText = Array.isArray(data.data_consistency) ? data.data_consistency.join('\n') : String(data.data_consistency);
+    document.getElementById('dataMatchContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${consistencyText}</p>`;
   }
 
   // Fraud signals
   if (data.fraud_signals) {
     document.getElementById('fraudSignalsSection').style.display = '';
-    document.getElementById('fraudSignalsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${data.fraud_signals}</p>`;
+    const fraudText = Array.isArray(data.fraud_signals) ? data.fraud_signals.join('\n') : String(data.fraud_signals);
+    document.getElementById('fraudSignalsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${fraudText}</p>`;
   }
 }
 
@@ -701,6 +715,7 @@ function showConfirmModal({ title, text, requireWord, confirmWord, danger, onCon
 
   if (requireWord) {
     inputGroup.classList.remove('hidden');
+    document.getElementById('confirmInputLabel').textContent = `Escribí "${confirmWord}" para confirmar:`;
     input.value = '';
     input.className = 'confirm-modal-input';
   } else {

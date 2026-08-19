@@ -423,6 +423,21 @@ p {
   color: var(--color-text);
 }
 
+.btn-danger {
+  background: var(--error-600);
+  color: var(--color-on-primary);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-full {
+  width: 100%;
+}
+
 /* Botones de estado (admin) */
 .btn-status {
   min-height: 42px;
