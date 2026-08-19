@@ -489,6 +489,13 @@ closeDetail.addEventListener('click', () => {
   currentDetailId = null;
 });
 
+detailOverlay.addEventListener('click', (e) => {
+  if (e.target === detailOverlay) {
+    detailOverlay.classList.add('hidden');
+    currentDetailId = null;
+  }
+});
+
 // ============================================
 // ACTUALIZAR ESTADO
 // ============================================
