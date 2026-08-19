@@ -316,9 +316,14 @@ async function openDetail(id) {
 
   currentDetailId = id;
 
+  // Reset tabs to first
+  document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.detail-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector('.detail-tab[data-tab="tabInfo"]').classList.add('active');
+  document.getElementById('tabInfo').classList.add('active');
+
   // Llenar datos
   document.getElementById('detailTitle').textContent = `${verification.first_name} ${verification.last_name}`;
-  document.getElementById('detailName').textContent = `${verification.first_name} ${verification.last_name}`;
   document.getElementById('detailDni').textContent = verification.dni;
   document.getElementById('detailEmail').textContent = verification.email;
   document.getElementById('detailPhone').textContent = verification.phone;
@@ -326,6 +331,15 @@ async function openDetail(id) {
   document.getElementById('detailCode').textContent = verification.unique_code;
   document.getElementById('detailStatusBadge').innerHTML = `<span class="badge badge-${verification.status.replace('in_review', 'review')}">${getStatusLabel(verification.status)}</span>`;
   document.getElementById('detailCreated').textContent = formatDate(verification.created_at);
+
+  // Ubicación
+  const locationRow = document.getElementById('detailLocationRow');
+  if (verification.latitude && verification.longitude) {
+    locationRow.style.display = '';
+    document.getElementById('detailLocation').href = `https://www.google.com/maps?q=${verification.latitude},${verification.longitude}`;
+  } else {
+    locationRow.style.display = 'none';
+  }
 
   // Link
   const verificationUrl = `${SUPABASE_CONFIG.domain}/v/?code=${verification.unique_code}`;
@@ -358,6 +372,31 @@ async function openDetail(id) {
   document.querySelectorAll('[data-status]').forEach(btn => {
     btn.onclick = () => updateStatus(btn.dataset.status);
   });
+
+  // Tabs
+  document.querySelectorAll('.detail-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.detail-tab-content').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    };
+  });
+
+  // Botón eliminar
+  const deleteBtn = document.getElementById('detailDeleteBtn');
+  if (deleteBtn) {
+    deleteBtn.onclick = () => deleteVerification(verification.id, verification.first_name);
+  }
+
+  // Cargar análisis existente
+  loadExistingAnalysis(verification.id);
+
+  // Botón analizar
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  if (analyzeBtn) {
+    analyzeBtn.onclick = () => runAnalysis(verification.id);
+  }
 
   detailOverlay.classList.remove('hidden');
 }
@@ -512,6 +551,179 @@ async function sendStatusEmail(verificationId, status) {
   } catch (err) {
     console.error('Error sending email:', err);
   }
+}
+
+// ============================================
+// ELIMINAR VERIFICACIÓN
+// ============================================
+
+async function deleteVerification(id, name) {
+  showConfirmModal({
+    title: 'Eliminar verificación',
+    text: `Vas a eliminar la verificación de ${name}. Esta acción no se puede deshacer.`,
+    requireWord: true,
+    confirmWord: 'PALOMA',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const { error } = await supabaseClient.rpc('delete_verification', { p_id: id });
+        if (error) throw error;
+        showToast('Verificación eliminada', 'success');
+        closeDetailPanel();
+        await loadVerifications();
+      } catch (err) {
+        console.error('Error deleting:', err);
+        showToast('Error al eliminar', 'error');
+      }
+    }
+  });
+}
+
+// ============================================
+// ANÁLISIS AI
+// ============================================
+
+async function loadExistingAnalysis(verificationId) {
+  const resultsDiv = document.getElementById('analysisResults');
+  resultsDiv.classList.add('hidden');
+
+  const { data } = await supabaseClient
+    .from('verification_analysis')
+    .select('*')
+    .eq('verification_id', verificationId)
+    .single();
+
+  if (!data) return;
+
+  resultsDiv.classList.remove('hidden');
+
+  // Score ring
+  const score = data.score || 0;
+  const scoreEl = document.getElementById('analysisScoreValue');
+  const ringEl = document.getElementById('analysisScoreRing');
+  scoreEl.textContent = score;
+  ringEl.className = 'analysis-score-ring ' + (score >= 80 ? 'high' : score >= 50 ? 'medium' : 'low');
+
+  // Recommendation
+  const recEl = document.getElementById('analysisRecommendation');
+  const rec = data.recommendation || '';
+  recEl.innerHTML = `<span class="rec-badge ${rec === 'LOW' ? 'rec-low' : rec === 'MEDIUM' ? 'rec-medium' : 'rec-high'}">${rec}</span>`;
+
+  // Scores per document
+  if (data.front_score != null) {
+    document.getElementById('frontScore').style.width = data.front_score + '%';
+    document.getElementById('frontScoreText').textContent = data.front_score + '%';
+  }
+  if (data.back_score != null) {
+    document.getElementById('backScore').style.width = data.back_score + '%';
+    document.getElementById('backScoreText').textContent = data.back_score + '%';
+  }
+  if (data.card_score != null) {
+    document.getElementById('cardScore').style.width = data.card_score + '%';
+    document.getElementById('cardScoreText').textContent = data.card_score + '%';
+  }
+
+  // Summary
+  if (data.summary) {
+    document.getElementById('summarySection').style.display = '';
+    document.getElementById('summaryContent').innerHTML = `<ul class="summary-list">${data.summary.split('\n').filter(Boolean).map(l => `<li>${l}</li>`).join('')}</ul>`;
+  }
+
+  // Findings
+  if (data.findings) {
+    document.getElementById('findingsSection').style.display = '';
+    document.getElementById('findingsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${data.findings}</p>`;
+  }
+
+  // Data match
+  if (data.data_consistency) {
+    document.getElementById('dataMatchSection').style.display = '';
+    document.getElementById('dataMatchContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${data.data_consistency}</p>`;
+  }
+
+  // Fraud signals
+  if (data.fraud_signals) {
+    document.getElementById('fraudSignalsSection').style.display = '';
+    document.getElementById('fraudSignalsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${data.fraud_signals}</p>`;
+  }
+}
+
+async function runAnalysis(verificationId) {
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = 'Analizando...';
+
+  try {
+    const response = await fetch('https://bot.anexaria.com/webhook/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verification_id: verificationId })
+    });
+
+    if (!response.ok) throw new Error('Error en análisis');
+
+    showToast('Análisis completado', 'success');
+    await loadExistingAnalysis(verificationId);
+  } catch (err) {
+    console.error('Analysis error:', err);
+    showToast('Error al analizar', 'error');
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'Verificar con Agente';
+  }
+}
+
+// ============================================
+// CONFIRM MODAL
+// ============================================
+
+function showConfirmModal({ title, text, requireWord, confirmWord, danger, onConfirm }) {
+  const modal = document.getElementById('confirmModal');
+  const icon = document.getElementById('confirmModalIcon');
+  const titleEl = document.getElementById('confirmModalTitle');
+  const textEl = document.getElementById('confirmModalText');
+  const inputGroup = document.getElementById('confirmInputGroup');
+  const input = document.getElementById('confirmInput');
+  const acceptBtn = document.getElementById('confirmAcceptBtn');
+  const cancelBtn = document.getElementById('confirmCancelBtn');
+
+  titleEl.textContent = title;
+  textEl.textContent = text;
+  icon.className = 'confirm-modal-icon' + (danger ? ' danger' : '');
+
+  if (requireWord) {
+    inputGroup.classList.remove('hidden');
+    input.value = '';
+    input.className = 'confirm-modal-input';
+  } else {
+    inputGroup.classList.add('hidden');
+  }
+
+  acceptBtn.className = 'btn' + (danger ? ' btn-danger' : '');
+  acceptBtn.textContent = 'Confirmar';
+  modal.classList.remove('hidden');
+
+  const cleanup = () => {
+    modal.classList.add('hidden');
+    acceptBtn.onclick = null;
+    cancelBtn.onclick = null;
+  };
+
+  cancelBtn.onclick = cleanup;
+
+  acceptBtn.onclick = () => {
+    if (requireWord && input.value.toUpperCase() !== confirmWord) {
+      input.className = 'confirm-modal-input error';
+      return;
+    }
+    cleanup();
+    onConfirm();
+  };
+}
+
+function closeDetailPanel() {
+  detailOverlay.classList.add('hidden');
+  currentDetailId = null;
 }
 
 // ============================================
