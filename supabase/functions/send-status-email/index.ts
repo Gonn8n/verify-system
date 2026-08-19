@@ -19,7 +19,7 @@ const templates = {
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFF;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.1);">
 <tr><td style="background:linear-gradient(135deg,#10B981,#059669);padding:40px 20px;text-align:center;">
-<div style="width:80px;height:80px;background:#FFF;border-radius:50%;margin:0 auto 16px;"><span style="font-size:32px;font-weight:800;color:#10B981;line-height:80px;">V</span></div>
+<div style="width:84px;height:84px;background:#FFF;border-radius:20px;margin:0 auto 16px;box-shadow:0 4px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;"><div style="width:68px;height:68px;background:linear-gradient(135deg,#10B981,#047857);border-radius:16px;display:flex;align-items:center;justify-content:center;"><span style="color:#FFF;font-size:34px;font-weight:700;line-height:1;">✓</span></div></div>
 <h1 style="color:#FFF;font-size:24px;font-weight:700;margin:0;">Verify</h1>
 </td></tr>
 <tr><td style="padding:40px 24px;text-align:center;">
@@ -43,7 +43,7 @@ const templates = {
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFF;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.1);">
 <tr><td style="background:linear-gradient(135deg,#EF4444,#DC2626);padding:40px 20px;text-align:center;">
-<div style="width:80px;height:80px;background:#FFF;border-radius:50%;margin:0 auto 16px;"><span style="font-size:32px;font-weight:800;color:#EF4444;line-height:80px;">V</span></div>
+<div style="width:84px;height:84px;background:#FFF;border-radius:20px;margin:0 auto 16px;box-shadow:0 4px 12px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;"><div style="width:68px;height:68px;background:linear-gradient(135deg,#DC2626,#991B1B);border-radius:16px;display:flex;align-items:center;justify-content:center;"><span style="color:#FFF;font-size:34px;font-weight:700;line-height:1;">✓</span></div></div>
 <h1 style="color:#FFF;font-size:24px;font-weight:700;margin:0;">Verify</h1>
 </td></tr>
 <tr><td style="padding:40px 24px;text-align:center;">

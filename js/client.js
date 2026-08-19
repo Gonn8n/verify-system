@@ -17,12 +17,6 @@ let mediaStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
-let userLocation = null;
-
-// Constantes
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_VIDEO_TYPES = ['video/webm', 'video/mp4'];
 
 // Archivos subidos
 let files = {
@@ -33,142 +27,76 @@ let files = {
 };
 
 // ============================================
-// TOAST NOTIFICATIONS
+// HELPERS DE UI
 // ============================================
 
-let toastTimeout = null;
+const STEP_META = {
+  2:  { label: 'Introducción', index: 0 },
+  3:  { label: 'Celular',       index: 1 },
+  4:  { label: 'DNI frente',    index: 2 },
+  5:  { label: 'DNI dorso',     index: 3 },
+  6:  { label: 'Video',         index: 4 },
+  7:  { label: 'Permisos',      index: 5 },
+  8:  { label: 'Grabación',     index: 6 },
+  9:  { label: 'Tarjeta',       index: 7 },
+  10: { label: 'Finalización',  index: 8 }
+};
 
-function showToast(message, type = 'info') {
-  let container = document.getElementById('toastContainer');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;';
-    document.body.appendChild(container);
+const TOTAL_STEPS = 8;
+
+// Error inline bajo un elemento (reemplaza alert())
+function showFieldError(areaEl, message) {
+  clearFieldError(areaEl);
+  const err = document.createElement('div');
+  err.className = 'field-error';
+  err.setAttribute('role', 'alert');
+  err.innerHTML = `
+    <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+    <span>${message}</span>
+  `;
+  areaEl.classList.add('is-invalid');
+  areaEl.after(err);
+  err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function clearFieldError(areaEl) {
+  if (!areaEl) return;
+  areaEl.classList.remove('is-invalid');
+  const next = areaEl.nextElementSibling;
+  if (next && next.classList && next.classList.contains('field-error')) {
+    next.remove();
+  }
+}
+
+// Error inline a nivel de step (ej: permisos cámara)
+function showStepError(errorEl, message) {
+  if (!errorEl) return;
+  errorEl.querySelector('span').textContent = message;
+  errorEl.classList.add('show');
+}
+
+function clearStepError(errorEl) {
+  if (errorEl) errorEl.classList.remove('show');
+}
+
+// Stepper de progreso global
+function updateProgress(step) {
+  const meta = STEP_META[step];
+  if (!meta) return;
+
+  const stepper = document.getElementById('stepper');
+  if (!stepper) return;
+
+  // Ocultar en el paso de transición (QR) y en la finalización
+  if (step === 3 || step === 10) {
+    stepper.classList.add('hidden');
+    return;
   }
 
-  const toast = document.createElement('div');
-  const colors = {
-    info: { bg: '#1F2937', color: '#fff' },
-    error: { bg: '#DC2626', color: '#fff' },
-    success: { bg: '#10B981', color: '#fff' }
-  };
-  const c = colors[type] || colors.info;
-  toast.style.cssText = `background:${c.bg};color:${c.color};padding:12px 20px;border-radius:12px;font-size:0.9rem;font-family:inherit;box-shadow:0 4px 12px rgba(0,0,0,0.15);opacity:0;transition:opacity 0.3s ease;pointer-events:auto;max-width:90vw;text-align:center;`;
-  toast.textContent = message;
-  container.appendChild(toast);
-
-  requestAnimationFrame(() => { toast.style.opacity = '1'; });
-
-  // Duración dinámica: 3s mensajes cortos, 5s mensajes largos
-  const duration = message.length > 50 ? 5000 : 3000;
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
-  }, duration);
-}
-
-// ============================================
-// VALIDACIÓN DE ARCHIVOS
-// ============================================
-
-function validateFile(file, allowedTypes) {
-  if (!file) return { valid: false, error: 'No se seleccionó ningún archivo' };
-  if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)}MB. El máximo es 10MB` };
-  }
-  if (allowedTypes && !allowedTypes.includes(file.type)) {
-    return { valid: false, error: 'Formato de archivo no válido' };
-  }
-  return { valid: true };
-}
-
-// ============================================
-// AUTO-ROTACIÓN EXIF
-// ============================================
-
-function getExifOrientation(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const view = new DataView(e.target.result);
-      // Buscar marker APP1 (EXIF)
-      if (view.getUint16(0, false) !== 0xFFD8) {
-        resolve(1); // No es JPEG
-        return;
-      }
-      let offset = 2;
-      while (offset < view.byteLength - 2) {
-        const marker = view.getUint16(offset, false);
-        offset += 2;
-        if (marker === 0xFFE1) { // APP1
-          const length = view.getUint16(offset, false);
-          // Verificar "Exif\0\0"
-          if (view.getUint32(offset + 2, false) === 0x45786966) {
-            const tiffOffset = offset + 8;
-            const bigEndian = view.getUint16(tiffOffset, false) === 0x4D4D;
-            const ifdOffset = view.getUint32(tiffOffset + 4, bigEndian) + tiffOffset;
-            const numEntries = view.getUint16(ifdOffset, bigEndian);
-            for (let i = 0; i < numEntries; i++) {
-              const entryOffset = ifdOffset + 2 + (i * 12);
-              if (view.getUint16(entryOffset, bigEndian) === 0x0112) {
-                resolve(view.getUint16(entryOffset + 8, bigEndian));
-                return;
-              }
-            }
-          }
-          offset += length;
-        } else if ((marker & 0xFF00) === 0xFF00) {
-          offset += view.getUint16(offset, false);
-        } else {
-          break;
-        }
-      }
-      resolve(1); // Default
-    };
-    reader.readAsArrayBuffer(file.slice(0, 65536));
-  });
-}
-
-function rotateImage(file, orientation) {
-  return new Promise((resolve) => {
-    if (orientation === 1) {
-      resolve(file);
-      return;
-    }
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      // Dimensiones según orientación
-      const swap = orientation >= 5 && orientation <= 8;
-      canvas.width = swap ? img.height : img.width;
-      canvas.height = swap ? img.width : img.height;
-      // Aplicar transformación
-      switch (orientation) {
-        case 2: ctx.transform(-1, 0, 0, 1, canvas.width, 0); break;
-        case 3: ctx.transform(-1, 0, 0, -1, canvas.width, canvas.height); break;
-        case 4: ctx.transform(1, 0, 0, -1, 0, canvas.height); break;
-        case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
-        case 6: ctx.transform(0, 1, -1, 0, canvas.height, 0); break;
-        case 7: ctx.transform(0, -1, -1, 0, canvas.height, canvas.width); break;
-        case 8: ctx.transform(0, -1, 1, 0, 0, canvas.width); break;
-      }
-      ctx.drawImage(img, 0, 0);
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(url);
-        const rotated = new File([blob], file.name, { type: file.type });
-        resolve(rotated);
-      }, file.type, 0.92);
-    };
-    img.src = url;
-  });
-}
-
-async function autoRotateImage(file) {
-  const orientation = await getExifOrientation(file);
-  return rotateImage(file, orientation);
+  stepper.classList.remove('hidden');
+  document.getElementById('stepperCount').textContent = `Paso ${meta.index + 1} de ${TOTAL_STEPS}`;
+  document.getElementById('stepperLabel').textContent = meta.label;
+  document.getElementById('stepperFill').style.width = (meta.index / TOTAL_STEPS * 100) + '%';
 }
 
 // ============================================
@@ -213,13 +141,6 @@ async function init() {
   document.getElementById('operationCode').textContent = '#' + verificationData.unique_code;
   document.getElementById('commerceName').textContent = SUPABASE_CONFIG.commerceName;
 
-  // Restaurar progreso guardado
-  const savedStep = sessionStorage.getItem(`verify_step_${verificationData.unique_code}`);
-  if (savedStep && parseInt(savedStep) >= 2) {
-    showStep(parseInt(savedStep));
-    return;
-  }
-
   // Detectar si es mobile
   if (!isMobile()) {
     showStep(3);
@@ -237,7 +158,9 @@ function showError(message) {
   document.querySelector('.verify-content').innerHTML = `
     <div class="step-container active">
       <div class="intro-card text-center">
-        <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+        <div class="status-icon status-icon-error">
+          <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
+        </div>
         <h2>Error</h2>
         <p>${message}</p>
       </div>
@@ -246,50 +169,43 @@ function showError(message) {
 }
 
 function showCompletedMessage() {
-  const statusConfig = {
-    pending: {
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-      bg: '#FEF3C7',
-      color: '#F59E0B',
-      title: 'Validación en proceso.',
-      msg: 'Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.'
-    },
-    in_review: {
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-      bg: '#DBEAFE',
-      color: '#3B82F6',
-      title: 'Validación en revisión.',
-      msg: 'Tu información está siendo revisada por nuestro equipo. Recibirás un email con el resultado pronto.'
-    },
-    approved: {
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
-      bg: '#D1FAE5',
-      color: '#10B981',
-      title: '¡Compra aprobada!',
-      msg: 'Tu verificación fue aprobada exitosamente. Gracias por completar el proceso.'
-    },
-    rejected: {
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
-      bg: '#FEE2E2',
-      color: '#EF4444',
-      title: 'Compra rechazada.',
-      msg: 'Lamentablemente no pudimos verificar tu identidad. Si creés que es un error, contactá al soporte del comercio.'
-    }
-  };
+  const status = verificationData ? verificationData.status : '';
+  const isApproved = status === 'approved';
+  const isRejected = status === 'rejected';
 
-  const s = statusConfig[verificationData.status] || statusConfig.pending;
+  let icon, iconClass, title, body;
+
+  if (isApproved) {
+    icon = 'i-check-circle';
+    iconClass = 'status-icon-success';
+    title = 'Verificación aprobada';
+    body = 'Tu identidad fue verificada correctamente. ¡Tu compra está aprobada!';
+  } else if (isRejected) {
+    icon = 'i-x-circle';
+    iconClass = 'status-icon-error';
+    title = 'Verificación rechazada';
+    body = 'No pudimos verificar tu identidad. Por favor, contactá al comercio para más información.';
+  } else {
+    icon = 'i-check-circle';
+    iconClass = 'status-icon-success';
+    title = 'Solicitud enviada con éxito';
+    body = 'Estamos revisando la información que nos proporcionaste, quedate atento que recibirás un email con el resultado en las próximas horas.';
+  }
+
+  const badgeHtml = (!isApproved && !isRejected)
+    ? `<span class="badge badge-pending">Estado: En revisión</span>`
+    : '';
 
   document.querySelector('.verify-content').innerHTML = `
     <div class="step-container active">
       <div class="intro-card">
         <div class="success-container">
-          <div class="success-icon-large" style="background: ${s.bg};">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${s.color}" stroke-width="2" style="width:50px;height:50px;">
-              ${s.icon}
-            </svg>
+          <div class="status-icon ${iconClass}">
+            <svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg>
           </div>
-          <h1>${s.title}</h1>
-          <p>${s.msg}</p>
+          <h1>${title}</h1>
+          <p>${body}</p>
+          ${badgeHtml}
         </div>
       </div>
     </div>
@@ -306,11 +222,7 @@ function showStep(step) {
   if (stepEl) {
     stepEl.classList.add('active');
     currentStep = step;
-    // Persistir progreso
-    const code = verificationData?.unique_code;
-    if (code) {
-      sessionStorage.setItem(`verify_step_${code}`, step);
-    }
+    updateProgress(step);
   }
 }
 
@@ -326,10 +238,10 @@ function generateQR() {
   const qrContainer = document.getElementById('qrCode');
   if (qrContainer) {
     qrContainer.innerHTML = `
-      <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block;">
+      <div class="qr-frame">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR Code">
       </div>
-      <p style="margin-top: 12px; font-size: 0.8rem; color: var(--color-text-secondary);">Escaneá el QR y seguí desde tu celular</p>
+      <p class="caption mt-3">Escaneá el QR y seguí desde tu celular</p>
     `;
   }
 }
@@ -358,24 +270,16 @@ document.getElementById('continueOnMobileBtn')?.addEventListener('click', () => 
 // ============================================
 
 async function requestPermissions() {
-  // Solo pedir geolocalización, no cámara (se pide cuando se necesita)
-  requestGeolocation();
-}
-
-function requestGeolocation() {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      userLocation = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude
-      };
-    },
-    (err) => {
-      console.log('Geolocation not available or denied:', err.message);
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-  );
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' },
+      audio: false 
+    });
+    // No mostramos el preview aquí, solo pedimos permiso
+  } catch (err) {
+    console.error('Permission error:', err);
+    // Si falla, igual permitimos subir archivo
+  }
 }
 
 // ============================================
@@ -388,45 +292,31 @@ const dniFrontPreview = document.getElementById('dniFrontPreview');
 const dniFrontUploadBtn = document.getElementById('dniFrontUploadBtn');
 const dniFrontCaptureBtn = document.getElementById('dniFrontCaptureBtn');
 
-dniFrontArea?.addEventListener('click', () => {
-  dniFrontInput.removeAttribute('capture');
-  dniFrontInput.click();
-});
-dniFrontUploadBtn?.addEventListener('click', () => {
-  dniFrontInput.removeAttribute('capture');
-  dniFrontInput.click();
-});
+dniFrontArea?.addEventListener('click', () => dniFrontInput.click());
+dniFrontUploadBtn?.addEventListener('click', () => dniFrontInput.click());
 dniFrontCaptureBtn?.addEventListener('click', () => {
-  dniFrontInput.setAttribute('capture', 'environment');
+  dniFrontInput.removeAttribute('capture');
   dniFrontInput.click();
 });
 
-dniFrontInput?.addEventListener('change', async (e) => {
+dniFrontInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-  const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
-  if (!validation.valid) {
-    showToast(validation.error, 'error');
-    e.target.value = '';
-    return;
+  if (file) {
+    files.dniFront = file;
+    clearFieldError(dniFrontArea);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      dniFrontPreview.src = e.target.result;
+      dniFrontPreview.classList.add('show');
+      dniFrontArea.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
   }
-  // Auto-rotar según EXIF
-  const rotatedFile = await autoRotateImage(file);
-  files.dniFront = rotatedFile;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    dniFrontPreview.src = ev.target.result;
-    dniFrontPreview.classList.add('show');
-    dniFrontArea.classList.add('has-file');
-  };
-  reader.readAsDataURL(rotatedFile);
-  // Resetear input para poder re-seleccionar el mismo archivo
-  e.target.value = '';
 });
 
 document.getElementById('nextDniFrontBtn')?.addEventListener('click', () => {
   if (!files.dniFront) {
-    showToast('Subí una foto del frente de tu DNI', 'error');
+    showFieldError(dniFrontArea, 'Por favor, subí una foto del frente de tu DNI');
     return;
   }
   showStep(5);
@@ -446,45 +336,31 @@ const dniBackPreview = document.getElementById('dniBackPreview');
 const dniBackUploadBtn = document.getElementById('dniBackUploadBtn');
 const dniBackCaptureBtn = document.getElementById('dniBackCaptureBtn');
 
-dniBackArea?.addEventListener('click', () => {
-  dniBackInput.removeAttribute('capture');
-  dniBackInput.click();
-});
-dniBackUploadBtn?.addEventListener('click', () => {
-  dniBackInput.removeAttribute('capture');
-  dniBackInput.click();
-});
+dniBackArea?.addEventListener('click', () => dniBackInput.click());
+dniBackUploadBtn?.addEventListener('click', () => dniBackInput.click());
 dniBackCaptureBtn?.addEventListener('click', () => {
-  dniBackInput.setAttribute('capture', 'environment');
+  dniBackInput.removeAttribute('capture');
   dniBackInput.click();
 });
 
-dniBackInput?.addEventListener('change', async (e) => {
+dniBackInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-  const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
-  if (!validation.valid) {
-    showToast(validation.error, 'error');
-    e.target.value = '';
-    return;
+  if (file) {
+    files.dniBack = file;
+    clearFieldError(dniBackArea);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      dniBackPreview.src = e.target.result;
+      dniBackPreview.classList.add('show');
+      dniBackArea.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
   }
-  // Auto-rotar según EXIF
-  const rotatedFile = await autoRotateImage(file);
-  files.dniBack = rotatedFile;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    dniBackPreview.src = ev.target.result;
-    dniBackPreview.classList.add('show');
-    dniBackArea.classList.add('has-file');
-  };
-  reader.readAsDataURL(rotatedFile);
-  // Resetear input para poder re-seleccionar el mismo archivo
-  e.target.value = '';
 });
 
 document.getElementById('nextDniBackBtn')?.addEventListener('click', () => {
   if (!files.dniBack) {
-    showToast('Subí una foto del dorso de tu DNI', 'error');
+    showFieldError(dniBackArea, 'Por favor, subí una foto del dorso de tu DNI');
     return;
   }
   showStep(6);
@@ -511,25 +387,36 @@ document.getElementById('backVideoIntroBtn')?.addEventListener('click', () => {
 // ============================================
 
 document.getElementById('okPermissionsBtn')?.addEventListener('click', async () => {
+  clearStepError(document.getElementById('permissionError'));
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+    // Intentar obtener cámara frontal para video
+    mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' },
-      audio: true 
+      audio: true
     });
-    
+
+    // Mostrar preview
     const preview = document.getElementById('cameraPreview');
     preview.srcObject = mediaStream;
     preview.classList.add('active');
-    
-    // Pedir geolocalización junto con cámara
-    requestGeolocation();
-    
+
     showStep(8);
   } catch (err) {
     console.error('Camera error:', err);
-    showToast('No se pudo acceder a la cámara. Verificá los permisos del navegador.', 'error');
+    showStepError(
+      document.getElementById('permissionError'),
+      'No se pudo acceder a la cámara. Verificá los permisos del navegador e intentá de nuevo.'
+    );
   }
 });
+
+// Inyectar el dominio real del sitio en el paso de permisos
+(function setSiteDomain() {
+  const el = document.getElementById('siteDomain');
+  if (el && SUPABASE_CONFIG && SUPABASE_CONFIG.domain) {
+    el.textContent = SUPABASE_CONFIG.domain.replace(/^https?:\/\//, '');
+  }
+})();
 
 // ============================================
 // STEP 8: GRABAR VIDEO
@@ -539,14 +426,6 @@ const recordBtn = document.getElementById('recordBtn');
 const stopBtn = document.getElementById('stopBtn');
 const recordingIndicator = document.getElementById('recordingIndicator');
 const videoPreview = document.getElementById('videoPreview');
-let recordingTimer = null;
-let recordingSeconds = 0;
-
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
 
 recordBtn?.addEventListener('click', () => {
   if (!mediaStream) return;
@@ -569,26 +448,18 @@ recordBtn?.addEventListener('click', () => {
   mediaRecorder.onstop = () => {
     recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
     files.lifeProofVideo = recordedBlob;
-    
+
     // Mostrar preview
     const url = URL.createObjectURL(recordedBlob);
     videoPreview.src = url;
     videoPreview.classList.add('show');
-    
+    clearFieldError(videoPreview);
+
     // Detener cámara
     stopCamera();
   };
 
   mediaRecorder.start();
-  
-  // Iniciar timer
-  recordingSeconds = 0;
-  const timerEl = document.getElementById('recordingTimer');
-  if (timerEl) timerEl.textContent = '00:00';
-  recordingTimer = setInterval(() => {
-    recordingSeconds++;
-    if (timerEl) timerEl.textContent = formatTime(recordingSeconds);
-  }, 1000);
   
   // UI
   recordBtn.classList.add('recording');
@@ -600,10 +471,6 @@ stopBtn?.addEventListener('click', () => {
   if (mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
   }
-  
-  // Detener timer
-  clearInterval(recordingTimer);
-  recordingTimer = null;
   
   // UI
   recordBtn.classList.remove('recording');
@@ -620,15 +487,17 @@ function stopCamera() {
 
 document.getElementById('nextRecordBtn')?.addEventListener('click', () => {
   if (!files.lifeProofVideo) {
-    showToast('Grabá un video de prueba de vida', 'error');
+    showFieldError(document.getElementById('videoPreview'), 'Por favor, grabá un video de prueba de vida');
     return;
   }
   showStep(9);
+  // Reabrir cámara para tomar foto de tarjeta
+  reopenCamera();
 });
 
 document.getElementById('backRecordBtn')?.addEventListener('click', () => {
   stopCamera();
-  showStep(7);
+  showStep(6);
 });
 
 // ============================================
@@ -649,48 +518,36 @@ async function reopenCamera() {
 const cardArea = document.getElementById('cardArea');
 const cardInput = document.getElementById('cardInput');
 const cardPreview = document.getElementById('cardPreview');
+const cardUploadBtn = document.getElementById('cardUploadBtn');
 const cardCaptureBtn = document.getElementById('cardCaptureBtn');
 
-cardArea?.addEventListener('click', () => {
+cardArea?.addEventListener('click', () => cardInput.click());
+cardUploadBtn?.addEventListener('click', () => cardInput.click());
+cardCaptureBtn?.addEventListener('click', () => {
   cardInput.removeAttribute('capture');
   cardInput.click();
 });
-cardCaptureBtn?.addEventListener('click', () => {
-  cardInput.setAttribute('capture', 'environment');
-  cardInput.click();
-});
 
-cardInput?.addEventListener('change', async (e) => {
+cardInput?.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-  const validation = validateFile(file, ALLOWED_IMAGE_TYPES);
-  if (!validation.valid) {
-    showToast(validation.error, 'error');
-    e.target.value = '';
-    return;
+  if (file) {
+    files.cardPhoto = file;
+    clearFieldError(cardArea);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      cardPreview.src = e.target.result;
+      cardPreview.classList.add('show');
+      cardArea.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
   }
-  // Auto-rotar según EXIF
-  const rotatedFile = await autoRotateImage(file);
-  files.cardPhoto = rotatedFile;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    cardPreview.src = ev.target.result;
-    cardPreview.classList.add('show');
-    cardArea.classList.add('has-file');
-  };
-  reader.readAsDataURL(rotatedFile);
-  // Resetear input para poder re-seleccionar el mismo archivo
-  e.target.value = '';
 });
 
 document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
   if (!files.cardPhoto) {
-    showToast('Subí una foto de tu tarjeta', 'error');
+    showFieldError(cardArea, 'Por favor, subí una foto de tu tarjeta');
     return;
   }
-  
-  // Cerrar cámara antes de subir
-  stopCamera();
   
   // Subir todos los archivos
   await uploadFiles();
@@ -698,7 +555,6 @@ document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('backCardBtn')?.addEventListener('click', () => {
-  stopCamera();
   showStep(8);
   // Reabrir cámara de video
   reopenCameraForVideo();
@@ -725,24 +581,27 @@ async function reopenCameraForVideo() {
 async function uploadFiles() {
   const code = verificationData.unique_code;
 
-  // Mostrar feedback de carga
-  showToast('Subiendo archivos...', 'info');
+  // Subir archivos y obtener URLs
+  let dniFrontUrl = null;
+  let dniBackUrl = null;
+  let videoUrl = null;
+  let cardUrl = null;
 
-  // Subir todos los archivos en paralelo
-  const uploads = [];
-  if (files.dniFront) uploads.push(uploadFile(files.dniFront, `${code}/dni-front.jpg`));
-  if (files.dniBack) uploads.push(uploadFile(files.dniBack, `${code}/dni-back.jpg`));
-  if (files.lifeProofVideo) uploads.push(uploadFile(files.lifeProofVideo, `${code}/life-proof.webm`));
-  if (files.cardPhoto) uploads.push(uploadFile(files.cardPhoto, `${code}/card-photo.jpg`));
+  if (files.dniFront) {
+    dniFrontUrl = await uploadFile(files.dniFront, `${code}/dni-front.jpg`);
+  }
 
-  const results = await Promise.all(uploads);
+  if (files.dniBack) {
+    dniBackUrl = await uploadFile(files.dniBack, `${code}/dni-back.jpg`);
+  }
 
-  // Mapear resultados
-  let i = 0;
-  const dniFrontUrl = files.dniFront ? results[i++] : null;
-  const dniBackUrl = files.dniBack ? results[i++] : null;
-  const videoUrl = files.lifeProofVideo ? results[i++] : null;
-  const cardUrl = files.cardPhoto ? results[i++] : null;
+  if (files.lifeProofVideo) {
+    videoUrl = await uploadFile(files.lifeProofVideo, `${code}/life-proof.webm`);
+  }
+
+  if (files.cardPhoto) {
+    cardUrl = await uploadFile(files.cardPhoto, `${code}/card-photo.jpg`);
+  }
 
   // Usar la función segura para actualizar el registro (sin login)
   const { data, error } = await supabaseClient
@@ -751,14 +610,20 @@ async function uploadFiles() {
       p_dni_front_url: dniFrontUrl,
       p_dni_back_url: dniBackUrl,
       p_life_proof_video_url: videoUrl,
-      p_card_photo_url: cardUrl,
-      p_latitude: userLocation?.latitude || null,
-      p_longitude: userLocation?.longitude || null
+      p_card_photo_url: cardUrl
     });
 
   if (error) {
     console.error('Error updating verification:', error);
-    showToast('Error al guardar. Intentá de nuevo.', 'error');
+    const cardStep = document.getElementById('step9');
+    if (cardStep) {
+      const errEl = cardStep.querySelector('.inline-error');
+      if (errEl) {
+        errEl.querySelector('span').textContent = 'Error al guardar la verificación. Por favor, intentá de nuevo.';
+        errEl.classList.add('show');
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
   }
 }
 
