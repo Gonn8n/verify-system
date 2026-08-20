@@ -1690,6 +1690,21 @@ p {
   font-weight: bold;
 }
 
+.match-yes {
+  color: var(--color-approved) !important;
+}
+.match-yes::before {
+  content: '\2713' !important;
+  color: var(--color-approved) !important;
+}
+.match-no {
+  color: var(--color-rejected) !important;
+}
+.match-no::before {
+  content: '\2717' !important;
+  color: var(--color-rejected) !important;
+}
+
 /* ---- Findings ---- */
 .analysis-findings {
   margin-top: 16px;

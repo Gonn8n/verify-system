@@ -645,14 +645,21 @@ async function loadExistingAnalysis(verificationId) {
   recEl.innerHTML = `<span class="rec-badge ${recClass}">${recLabel}</span>`;
 
   // Scores per document
+  function scoreBarClass(score) { return score >= 80 ? 'high' : score >= 50 ? 'medium' : 'low'; }
   const frontScore = data.dni_front_score || 0;
   const backScore = data.dni_back_score || 0;
   const cardScore = data.card_photo_score || 0;
-  document.getElementById('frontScore').style.width = frontScore + '%';
+  const frontBar = document.getElementById('frontScore');
+  const backBar = document.getElementById('backScore');
+  const cardBar = document.getElementById('cardScore');
+  frontBar.style.width = frontScore + '%';
+  frontBar.className = 'score-bar ' + scoreBarClass(frontScore);
   document.getElementById('frontScoreText').textContent = frontScore + '%';
-  document.getElementById('backScore').style.width = backScore + '%';
+  backBar.style.width = backScore + '%';
+  backBar.className = 'score-bar ' + scoreBarClass(backScore);
   document.getElementById('backScoreText').textContent = backScore + '%';
-  document.getElementById('cardScore').style.width = cardScore + '%';
+  cardBar.style.width = cardScore + '%';
+  cardBar.className = 'score-bar ' + scoreBarClass(cardScore);
   document.getElementById('cardScoreText').textContent = cardScore + '%';
 
   // Summary
@@ -687,7 +694,7 @@ async function loadExistingAnalysis(verificationId) {
   if (data.data_consistency && typeof data.data_consistency === 'object') {
     consistencyEl.style.display = '';
     const labels = { front_back_match: 'Frente ↔ Dorso', text_readable: 'Texto legible', document_intact: 'Documento intacto' };
-    consistencyContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_consistency).map(([k, v]) => `<li>${labels[k] || k}: ${v ? '✓' : '✗'}</li>`).join('')}</ul>`;
+    consistencyContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_consistency).map(([k, v]) => `<li class="${v ? 'match-yes' : 'match-no'}">${labels[k] || k}</li>`).join('')}</ul>`;
   } else {
     consistencyEl.style.display = 'none';
   }
@@ -698,7 +705,7 @@ async function loadExistingAnalysis(verificationId) {
   if (data.data_match && typeof data.data_match === 'object') {
     dataMatchEl.style.display = '';
     const labels = { name_match: 'Nombre', dni_match: 'DNI', card_match: 'Tarjeta' };
-    dataMatchContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_match).filter(([k]) => labels[k]).map(([k, v]) => `<li>${labels[k]}: ${v ? '✓ Coincide' : '✗ No coincide'}</li>`).join('')}</ul>`;
+    dataMatchContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_match).filter(([k]) => labels[k]).map(([k, v]) => `<li class="${v ? 'match-yes' : 'match-no'}">${labels[k]}</li>`).join('')}</ul>`;
   } else {
     dataMatchEl.style.display = 'none';
   }
