@@ -1548,6 +1548,21 @@ p {
 .rec-low { background: #D1FAE5; color: #065F46; }
 .rec-medium { background: #FEF3C7; color: #92400E; }
 .rec-high { background: #FEE2E2; color: #991B1B; }
+.rec-review { background: #E0E7FF; color: #3730A3; }
+
+/* ---- Fraud signals severity ---- */
+.fraud-signals-list { list-style: none; padding: 0; margin: 0; }
+.fraud-signal { padding: 8px 10px; margin-bottom: 6px; border-radius: 6px; border-left: 3px solid transparent; background: var(--color-surface); }
+.fraud-signal.severity-high { border-left-color: var(--error-500); background: #FEF2F2; }
+.fraud-signal.severity-medium { border-left-color: var(--warning-500); background: #FFFBEB; }
+.fraud-signal.severity-low { border-left-color: var(--success-500); background: #ECFDF5; }
+.signal-severity { font-weight: 600; font-size: 0.7rem; text-transform: uppercase; }
+.severity-high .signal-severity { color: var(--error-600); }
+.severity-medium .signal-severity { color: #D97706; }
+.severity-low .signal-severity { color: var(--success-600); }
+.signal-confidence { font-size: 0.75rem; color: var(--text-secondary); margin-left: 6px; }
+.signal-location { font-size: 0.75rem; color: var(--text-secondary); font-style: italic; }
+.signal-desc { margin-top: 4px; font-size: 0.85rem; color: var(--text-primary); }
 
 .analysis-scores {
   margin: 16px 0;

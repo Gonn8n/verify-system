@@ -642,8 +642,10 @@ async function loadExistingAnalysis(verificationId) {
   // Recommendation
   const recEl = document.getElementById('analysisRecommendation');
   const rec = data.recommendation || '';
-  const recLabel = rec === 'low_risk' ? 'LOW RISK' : rec === 'medium_risk' ? 'MEDIUM RISK' : rec === 'high_risk' ? 'HIGH RISK' : rec.toUpperCase();
-  const recClass = rec === 'low_risk' ? 'rec-low' : rec === 'medium_risk' ? 'rec-medium' : 'rec-high';
+  const recLabels = { low_risk: 'LOW RISK', medium_risk: 'MEDIUM RISK', high_risk: 'HIGH RISK', manual_review: 'REVISIÓN MANUAL' };
+  const recClasses = { low_risk: 'rec-low', medium_risk: 'rec-medium', high_risk: 'rec-high', manual_review: 'rec-review' };
+  const recLabel = recLabels[rec] || rec.toUpperCase();
+  const recClass = recClasses[rec] || 'rec-medium';
   recEl.innerHTML = `<span class="rec-badge ${recClass}">${recLabel}</span>`;
 
   // Scores per document
@@ -717,7 +719,16 @@ async function loadExistingAnalysis(verificationId) {
   const fraudContent = document.getElementById('fraudSignalsContent');
   if (Array.isArray(data.fraud_signals) && data.fraud_signals.length) {
     fraudEl.style.display = '';
-    fraudContent.innerHTML = `<ul class="summary-list">${data.fraud_signals.map(s => `<li>${typeof s === 'object' ? (s.description || s.signal || JSON.stringify(s)) : s}</li>`).join('')}</ul>`;
+    fraudContent.innerHTML = `<ul class="fraud-signals-list">${data.fraud_signals.map(s => {
+      if (typeof s === 'object') {
+        const severity = s.severity || 'medium';
+        const confidence = s.confidence || 0;
+        const location = s.location || '';
+        const desc = s.description || s.signal || JSON.stringify(s);
+        return `<li class="fraud-signal severity-${severity}"><span class="signal-severity">${severity.toUpperCase()}</span> <span class="signal-confidence">${confidence}%</span>${location ? ` <span class="signal-location">en ${location}</span>` : ''}<div class="signal-desc">${desc}</div></li>`;
+      }
+      return `<li>${s}</li>`;
+    }).join('')}</ul>`;
   } else {
     fraudEl.style.display = 'none';
   }
