@@ -70,19 +70,19 @@
       "typeVersion": 4.2,
       "position": [1120, 300],
       "parameters": {
-        "method": "POST",
-        "url": "https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verification_analysis",
+        "method": "PATCH",
+        "url": "=https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verification_analysis?verification_id=eq.{{ $json.verification_id }}",
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ verification_id: $json.verification_id, extracted_name: $json.extracted_name, extracted_dni: $json.extracted_dni, extracted_birth_date: $json.extracted_birth_date, dni_front_score: $json.dni_front_score, dni_back_score: $json.dni_back_score, dni_front_findings: $json.dni_front_findings, dni_back_findings: $json.dni_back_findings, card_photo_score: $json.card_photo_score, card_photo_findings: $json.card_photo_findings, overall_score: $json.overall_score, fraud_signals: $json.fraud_signals, data_match: $json.data_match, data_consistency: $json.data_consistency, summary: $json.summary, recommendation: $json.recommendation, raw_response: $json.raw_response, analyzed_at: $json.analyzed_at }) }}",
+        "jsonBody": "={{ JSON.stringify({ extracted_name: $json.extracted_name, extracted_dni: $json.extracted_dni, extracted_birth_date: $json.extracted_birth_date, dni_front_score: $json.dni_front_score, dni_back_score: $json.dni_back_score, dni_front_findings: $json.dni_front_findings, dni_back_findings: $json.dni_back_findings, card_photo_score: $json.card_photo_score, card_photo_findings: $json.card_photo_findings, overall_score: $json.overall_score, fraud_signals: $json.fraud_signals, data_match: $json.data_match, data_consistency: $json.data_consistency, summary: $json.summary, recommendation: $json.recommendation, raw_response: $json.raw_response, analyzed_at: $json.analyzed_at }) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             { "name": "apikey", "value": "PEGAR_ANON_KEY" },
             { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY" },
             { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=representation,resolution=merge-duplicates" }
+            { "name": "Prefer", "value": "return=representation" }
           ]
         },
         "options": {}
