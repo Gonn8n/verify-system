@@ -631,7 +631,7 @@ async function loadExistingAnalysis(verificationId) {
   resultsDiv.classList.remove('hidden');
 
   // Score ring
-  const score = data.score || 0;
+  const score = data.overall_score || 0;
   const scoreEl = document.getElementById('analysisScoreValue');
   const ringEl = document.getElementById('analysisScoreRing');
   scoreEl.textContent = score;
@@ -640,48 +640,77 @@ async function loadExistingAnalysis(verificationId) {
   // Recommendation
   const recEl = document.getElementById('analysisRecommendation');
   const rec = data.recommendation || '';
-  recEl.innerHTML = `<span class="rec-badge ${rec === 'LOW' ? 'rec-low' : rec === 'MEDIUM' ? 'rec-medium' : 'rec-high'}">${rec}</span>`;
+  const recLabel = rec === 'low_risk' ? 'LOW RISK' : rec === 'medium_risk' ? 'MEDIUM RISK' : rec === 'high_risk' ? 'HIGH RISK' : rec.toUpperCase();
+  const recClass = rec === 'low_risk' ? 'rec-low' : rec === 'medium_risk' ? 'rec-medium' : 'rec-high';
+  recEl.innerHTML = `<span class="rec-badge ${recClass}">${recLabel}</span>`;
 
   // Scores per document
-  if (data.front_score != null) {
-    document.getElementById('frontScore').style.width = data.front_score + '%';
-    document.getElementById('frontScoreText').textContent = data.front_score + '%';
-  }
-  if (data.back_score != null) {
-    document.getElementById('backScore').style.width = data.back_score + '%';
-    document.getElementById('backScoreText').textContent = data.back_score + '%';
-  }
-  if (data.card_score != null) {
-    document.getElementById('cardScore').style.width = data.card_score + '%';
-    document.getElementById('cardScoreText').textContent = data.card_score + '%';
-  }
+  const frontScore = data.dni_front_score || 0;
+  const backScore = data.dni_back_score || 0;
+  const cardScore = data.card_photo_score || 0;
+  document.getElementById('frontScore').style.width = frontScore + '%';
+  document.getElementById('frontScoreText').textContent = frontScore + '%';
+  document.getElementById('backScore').style.width = backScore + '%';
+  document.getElementById('backScoreText').textContent = backScore + '%';
+  document.getElementById('cardScore').style.width = cardScore + '%';
+  document.getElementById('cardScoreText').textContent = cardScore + '%';
 
   // Summary
-  if (data.summary) {
-    document.getElementById('summarySection').style.display = '';
-    const summaryText = Array.isArray(data.summary) ? data.summary.join('\n') : String(data.summary);
-    document.getElementById('summaryContent').innerHTML = `<ul class="summary-list">${summaryText.split('\n').filter(Boolean).map(l => `<li>${l}</li>`).join('')}</ul>`;
+  const summaryEl = document.getElementById('summarySection');
+  const summaryContent = document.getElementById('summaryContent');
+  if (data.summary && (Array.isArray(data.summary) ? data.summary.length : true)) {
+    summaryEl.style.display = '';
+    const items = Array.isArray(data.summary) ? data.summary : String(data.summary).split('\n').filter(Boolean);
+    summaryContent.innerHTML = `<ul class="summary-list">${items.map(l => `<li>${l}</li>`).join('')}</ul>`;
+  } else {
+    summaryEl.style.display = 'none';
   }
 
-  // Findings
-  if (data.findings) {
-    document.getElementById('findingsSection').style.display = '';
-    const findingsText = Array.isArray(data.findings) ? data.findings.join('\n') : String(data.findings);
-    document.getElementById('findingsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${findingsText}</p>`;
+  // Findings — combine all document findings
+  const findingsEl = document.getElementById('findingsSection');
+  const findingsContent = document.getElementById('findingsContent');
+  const allFindings = [
+    ...(Array.isArray(data.dni_front_findings) ? data.dni_front_findings : []),
+    ...(Array.isArray(data.dni_back_findings) ? data.dni_back_findings : []),
+    ...(Array.isArray(data.card_photo_findings) ? data.card_photo_findings : [])
+  ];
+  if (allFindings.length) {
+    findingsEl.style.display = '';
+    findingsContent.innerHTML = `<ul class="summary-list">${allFindings.map(f => `<li>${f}</li>`).join('')}</ul>`;
+  } else {
+    findingsEl.style.display = 'none';
+  }
+
+  // Data consistency
+  const consistencyEl = document.getElementById('consistencySection');
+  const consistencyContent = document.getElementById('consistencyContent');
+  if (data.data_consistency && typeof data.data_consistency === 'object') {
+    consistencyEl.style.display = '';
+    const labels = { front_back_match: 'Frente ↔ Dorso', text_readable: 'Texto legible', document_intact: 'Documento intacto' };
+    consistencyContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_consistency).map(([k, v]) => `<li>${labels[k] || k}: ${v ? '✓' : '✗'}</li>`).join('')}</ul>`;
+  } else {
+    consistencyEl.style.display = 'none';
   }
 
   // Data match
-  if (data.data_consistency) {
-    document.getElementById('dataMatchSection').style.display = '';
-    const consistencyText = Array.isArray(data.data_consistency) ? data.data_consistency.join('\n') : String(data.data_consistency);
-    document.getElementById('dataMatchContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${consistencyText}</p>`;
+  const dataMatchEl = document.getElementById('dataMatchSection');
+  const dataMatchContent = document.getElementById('dataMatchContent');
+  if (data.data_match && typeof data.data_match === 'object') {
+    dataMatchEl.style.display = '';
+    const labels = { name_match: 'Nombre', dni_match: 'DNI', card_match: 'Tarjeta' };
+    dataMatchContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_match).filter(([k]) => labels[k]).map(([k, v]) => `<li>${labels[k]}: ${v ? '✓ Coincide' : '✗ No coincide'}</li>`).join('')}</ul>`;
+  } else {
+    dataMatchEl.style.display = 'none';
   }
 
   // Fraud signals
-  if (data.fraud_signals) {
-    document.getElementById('fraudSignalsSection').style.display = '';
-    const fraudText = Array.isArray(data.fraud_signals) ? data.fraud_signals.join('\n') : String(data.fraud_signals);
-    document.getElementById('fraudSignalsContent').innerHTML = `<p style="font-size:0.85rem;color:var(--color-text);line-height:1.5;">${fraudText}</p>`;
+  const fraudEl = document.getElementById('fraudSignalsSection');
+  const fraudContent = document.getElementById('fraudSignalsContent');
+  if (Array.isArray(data.fraud_signals) && data.fraud_signals.length) {
+    fraudEl.style.display = '';
+    fraudContent.innerHTML = `<ul class="summary-list">${data.fraud_signals.map(s => `<li>${typeof s === 'object' ? (s.description || s.signal || JSON.stringify(s)) : s}</li>`).join('')}</ul>`;
+  } else {
+    fraudEl.style.display = 'none';
   }
 }
 
@@ -709,11 +738,11 @@ async function runAnalysis(verificationId) {
     const poll = async () => {
       const { data } = await supabaseClient
         .from('verification_analysis')
-        .select('score')
+        .select('overall_score')
         .eq('verification_id', verificationId)
         .single();
 
-      if (data && data.score != null) {
+      if (data && data.overall_score != null) {
         await loadExistingAnalysis(verificationId);
         showToast('Análisis completado', 'success');
         analyzeBtn.disabled = false;
