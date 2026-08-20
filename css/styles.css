@@ -1609,12 +1609,22 @@ p {
 .analysis-data-match,
 .analysis-fraud-signals {
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  padding: 12px 14px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
 }
 
-.analysis-data-match h4,
 .analysis-fraud-signals h4 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #991B1B;
+  margin: 0 0 8px 0;
+}
+
+.analysis-data-match h4 {
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2449,10 +2459,9 @@ body.login-page {
 /* Toolbar / filter tabs */
 .admin-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   margin-bottom: var(--space-5);
-  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -2465,6 +2474,7 @@ body.login-page {
   box-shadow: var(--shadow-xs);
   border: 1px solid var(--color-border);
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .filter-tab {
