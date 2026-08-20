@@ -788,6 +788,15 @@ p {
   height: 28px;
 }
 
+.upload-area-img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-md);
+  opacity: 0.85;
+}
+
 .upload-text {
   font-size: var(--text-sm);
   color: var(--brand-800);

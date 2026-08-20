@@ -17,6 +17,7 @@ let mediaStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
+let userLocation = null;
 
 // Archivos subidos
 let files = {
@@ -25,6 +26,19 @@ let files = {
   lifeProofVideo: null,
   cardPhoto: null
 };
+
+// ============================================
+// GEOLOCALIZACIÓN
+// ============================================
+
+function requestLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+    () => { userLocation = null; },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+  );
+}
 
 // ============================================
 // HELPERS DE UI
@@ -279,6 +293,7 @@ async function requestPermissions() {
     console.error('Permission error:', err);
     // Si falla, igual permitimos subir archivo
   }
+  requestLocation();
 }
 
 // ============================================
@@ -609,7 +624,9 @@ async function uploadFiles() {
       p_dni_front_url: dniFrontUrl,
       p_dni_back_url: dniBackUrl,
       p_life_proof_video_url: videoUrl,
-      p_card_photo_url: cardUrl
+      p_card_photo_url: cardUrl,
+      p_latitude: userLocation?.lat || null,
+      p_longitude: userLocation?.lng || null
     });
 
   if (error) {
