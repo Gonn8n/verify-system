@@ -624,6 +624,8 @@ async function loadExistingAnalysis(verificationId) {
     .from('verification_analysis')
     .select('*')
     .eq('verification_id', verificationId)
+    .order('analyzed_at', { ascending: false })
+    .limit(1)
     .single();
 
   if (!data) return;
