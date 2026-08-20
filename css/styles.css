@@ -49,6 +49,11 @@
   --color-border-strong: var(--gray-300);
   --color-overlay: rgba(17, 24, 39, 0.55);
 
+  /* ---- Colores de estado ---- */
+  --color-approved: var(--success-600);
+  --color-pending: var(--warning-500);
+  --color-rejected: var(--error-600);
+
   /* ---- Feedback semántico ---- */
   --success-fg: #065F46;
   --success-bg: #ECFDF5;
@@ -789,12 +794,14 @@ p {
 }
 
 .upload-area-img {
-  max-width: 120px;
-  max-height: 80px;
-  object-fit: contain;
-  margin-bottom: var(--space-3);
-  border-radius: var(--radius-md);
-  opacity: 0.85;
+  max-width: 100%;
+    /* max-height: 200px; */
+    object-fit: contain;
+    margin-bottom: var(--space-3);
+    border-radius: var(--radius-md);
+    opacity: 0.85;
+    display: block;
+    margin: 0 auto;
 }
 
 .upload-text {
