@@ -759,6 +759,8 @@ p {
   background: var(--brand-50);
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  position: relative;
+  overflow: hidden;
 }
 
 .upload-area:hover {
@@ -774,6 +776,12 @@ p {
 .upload-area.has-file {
   border-color: var(--success-500);
   background: var(--success-bg);
+  border-style: solid;
+}
+
+.upload-area.has-file .upload-area-img,
+.upload-area.has-file .upload-text {
+  display: none;
 }
 
 .upload-icon {
@@ -823,13 +831,121 @@ p {
 .upload-preview {
   width: 100%;
   border-radius: var(--radius-md);
-  margin-top: var(--space-4);
   display: none;
   border: 2px solid var(--success-500);
+  max-height: 220px;
+  object-fit: contain;
 }
 
 .upload-preview.show {
   display: block;
+}
+
+.upload-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--error-500);
+  color: white;
+  border: 2px solid white;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.upload-area.has-file .upload-remove {
+  display: flex;
+}
+
+/* ---- QR Toggle & Modal ---- */
+.qr-toggle {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  cursor: pointer;
+  color: var(--brand-600);
+  box-shadow: var(--shadow-xs);
+  transition: background var(--dur-fast) var(--ease);
+  z-index: 10;
+}
+
+.qr-toggle:hover {
+  background: var(--brand-50);
+}
+
+.verify-header {
+  position: relative;
+}
+
+.qr-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-5);
+}
+
+.qr-modal.hidden {
+  display: none;
+}
+
+.qr-modal-content {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+
+.qr-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.qr-modal-content h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.qr-modal-content p {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.qr-modal-content img {
+  border-radius: var(--radius-md);
+}
+
+.qr-url {
+  font-size: var(--text-xs) !important;
+  color: var(--color-text-muted) !important;
+  word-break: break-all;
+  margin-top: var(--space-3) !important;
 }
 
 /* ---- Stepper ---- */

@@ -27,6 +27,14 @@ let files = {
   cardPhoto: null
 };
 
+// Marcadores de archivos ya subidos a Supabase
+let uploaded = {
+  dniFront: false,
+  dniBack: false,
+  lifeProofVideo: false,
+  cardPhoto: false
+};
+
 // ============================================
 // GEOLOCALIZACIÓN
 // ============================================
@@ -58,7 +66,7 @@ const STEP_META = {
 
 const TOTAL_STEPS = 8;
 
-// Error inline bajo un elemento (reemplaza alert())
+// Error inline bajo un elemento
 function showFieldError(areaEl, message) {
   clearFieldError(areaEl);
   const err = document.createElement('div');
@@ -82,7 +90,7 @@ function clearFieldError(areaEl) {
   }
 }
 
-// Error inline a nivel de step (ej: permisos cámara)
+// Error inline a nivel de step
 function showStepError(errorEl, message) {
   if (!errorEl) return;
   errorEl.querySelector('span').textContent = message;
@@ -101,7 +109,6 @@ function updateProgress(step) {
   const stepper = document.getElementById('stepper');
   if (!stepper) return;
 
-  // Ocultar en el paso de transición (QR) y en la finalización
   if (step === 3 || step === 10) {
     stepper.classList.add('hidden');
     return;
@@ -113,11 +120,53 @@ function updateProgress(step) {
 }
 
 // ============================================
+// QR TOGGLE & MODAL
+// ============================================
+
+function showQRToggle() {
+  const btn = document.getElementById('qrToggleBtn');
+  if (btn) btn.classList.remove('hidden');
+}
+
+function hideQRToggle() {
+  const btn = document.getElementById('qrToggleBtn');
+  if (btn) btn.classList.add('hidden');
+}
+
+function generateQRModal() {
+  if (!verificationData) return;
+  const code = verificationData.unique_code;
+  const url = `${SUPABASE_CONFIG.domain}/v/?code=${code}`;
+  const imgContainer = document.getElementById('qrModalImage');
+  const urlEl = document.getElementById('qrModalUrl');
+  if (imgContainer) {
+    imgContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR Code">`;
+  }
+  if (urlEl) {
+    urlEl.textContent = url;
+  }
+}
+
+document.getElementById('qrToggleBtn')?.addEventListener('click', () => {
+  generateQRModal();
+  document.getElementById('qrModal')?.classList.remove('hidden');
+});
+
+document.getElementById('qrModalClose')?.addEventListener('click', () => {
+  document.getElementById('qrModal')?.classList.add('hidden');
+});
+
+document.getElementById('qrModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'qrModal') {
+    e.target.classList.add('hidden');
+  }
+});
+
+// ============================================
 // INICIALIZACIÓN
 // ============================================
 
 async function init() {
-  // Obtener código de la URL
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
 
@@ -126,7 +175,6 @@ async function init() {
     return;
   }
 
-  // Buscar verificación
   const { data, error } = await supabaseClient
     .rpc('get_verification_by_code', { code: code });
 
@@ -144,7 +192,7 @@ async function init() {
   }
 
   // Verificar si ya subió todo
-  if (verificationData.dni_front_url && verificationData.dni_back_url && 
+  if (verificationData.dni_front_url && verificationData.dni_back_url &&
       verificationData.life_proof_video_url && verificationData.card_photo_url) {
     showCompletedMessage();
     return;
@@ -159,7 +207,25 @@ async function init() {
     showStep(3);
     generateQR();
   } else {
-    showStep(2);
+    // Determinar paso inicial según progreso
+    let startStep = 4;
+
+    if (verificationData.dni_front_url) {
+      uploaded.dniFront = true;
+      startStep = 5;
+    }
+    if (verificationData.dni_back_url) {
+      uploaded.dniBack = true;
+      startStep = 6;
+    }
+    if (verificationData.life_proof_video_url) {
+      uploaded.lifeProofVideo = true;
+      startStep = 9;
+    }
+
+    showStep(startStep);
+    showQRToggle();
+    requestPermissions();
   }
 }
 
@@ -236,18 +302,54 @@ function showStep(step) {
     stepEl.classList.add('active');
     currentStep = step;
     updateProgress(step);
+
+    // Mostrar fotos existentes si ya están subidas
+    showExistingFiles(step);
+  }
+}
+
+function showExistingFiles(step) {
+  if (!verificationData) return;
+
+  if (step === 4 && verificationData.dni_front_url) {
+    const preview = document.getElementById('dniFrontPreview');
+    const area = document.getElementById('dniFrontArea');
+    if (preview && area) {
+      preview.src = verificationData.dni_front_url;
+      preview.classList.add('show');
+      area.classList.add('has-file');
+    }
+  }
+
+  if (step === 5 && verificationData.dni_back_url) {
+    const preview = document.getElementById('dniBackPreview');
+    const area = document.getElementById('dniBackArea');
+    if (preview && area) {
+      preview.src = verificationData.dni_back_url;
+      preview.classList.add('show');
+      area.classList.add('has-file');
+    }
+  }
+
+  if (step === 9 && verificationData.card_photo_url) {
+    const preview = document.getElementById('cardPreview');
+    const area = document.getElementById('cardArea');
+    if (preview && area) {
+      preview.src = verificationData.card_photo_url;
+      preview.classList.add('show');
+      area.classList.add('has-file');
+    }
   }
 }
 
 // ============================================
-// QR CODE
+// QR CODE (para desktop)
 // ============================================
 
 function generateQR() {
   const code = verificationData.unique_code;
   const url = `${SUPABASE_CONFIG.domain}/v/?code=${code}`;
-  
-  // Usar API de QR code simple
+
   const qrContainer = document.getElementById('qrCode');
   if (qrContainer) {
     qrContainer.innerHTML = `
@@ -266,6 +368,7 @@ function generateQR() {
 document.getElementById('startBtn')?.addEventListener('click', () => {
   if (isMobile()) {
     showStep(4);
+    showQRToggle();
     requestPermissions();
   } else {
     showStep(3);
@@ -275,6 +378,7 @@ document.getElementById('startBtn')?.addEventListener('click', () => {
 
 document.getElementById('continueOnMobileBtn')?.addEventListener('click', () => {
   showStep(4);
+  showQRToggle();
   requestPermissions();
 });
 
@@ -284,17 +388,105 @@ document.getElementById('continueOnMobileBtn')?.addEventListener('click', () => 
 
 async function requestPermissions() {
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.warn('Camera not available on this device');
+      requestLocation();
+      return;
+    }
+    mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
-      audio: false 
+      audio: false
     });
-    // No mostramos el preview aquí, solo pedimos permiso
   } catch (err) {
     console.error('Permission error:', err);
-    // Si falla, igual permitimos subir archivo
   }
   requestLocation();
 }
+
+// ============================================
+// UPLOAD HELPERS
+// ============================================
+
+async function uploadFile(file, path) {
+  try {
+    const { data, error } = await supabaseClient.storage
+      .from(SUPABASE_CONFIG.storageBucket)
+      .upload(path, file, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from(SUPABASE_CONFIG.storageBucket)
+      .getPublicUrl(path);
+
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error('Upload error:', err);
+    return null;
+  }
+}
+
+async function uploadSingleFile(fileKey, storagePath) {
+  const code = verificationData.unique_code;
+  if (!files[fileKey] || uploaded[fileKey]) return true;
+
+  const url = await uploadFile(files[fileKey], `${code}/${storagePath}`);
+  if (!url) return false;
+
+  // Guardar URL en DB
+  const updateField = {};
+  if (fileKey === 'dniFront') updateField.dni_front_url = url;
+  if (fileKey === 'dniBack') updateField.dni_back_url = url;
+  if (fileKey === 'lifeProofVideo') updateField.life_proof_video_url = url;
+  if (fileKey === 'cardPhoto') updateField.card_photo_url = url;
+
+  const { error } = await supabaseClient
+    .from('verifications')
+    .update(updateField)
+    .eq('id', verificationData.id);
+
+  if (error) {
+    console.error('Error updating verification:', error);
+    return false;
+  }
+
+  // Actualizar datos locales
+  if (fileKey === 'dniFront') verificationData.dni_front_url = url;
+  if (fileKey === 'dniBack') verificationData.dni_back_url = url;
+  if (fileKey === 'lifeProofVideo') verificationData.life_proof_video_url = url;
+  if (fileKey === 'cardPhoto') verificationData.card_photo_url = url;
+
+  uploaded[fileKey] = true;
+  return true;
+}
+
+// ============================================
+// REMOVE BUTTONS (Eliminar y re-subir)
+// ============================================
+
+function setupRemoveButton(btnId, fileKey, inputId, previewId, areaId) {
+  document.getElementById(btnId)?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    files[fileKey] = null;
+    uploaded[fileKey] = false;
+    const preview = document.getElementById(previewId);
+    const area = document.getElementById(areaId);
+    const input = document.getElementById(inputId);
+    if (preview) { preview.src = ''; preview.classList.remove('show'); }
+    if (area) area.classList.remove('has-file');
+    if (input) input.value = '';
+  });
+}
+
+setupRemoveButton('dniFrontRemove', 'dniFront', 'dniFrontInput', 'dniFrontPreview', 'dniFrontArea');
+setupRemoveButton('dniBackRemove', 'dniBack', 'dniBackInput', 'dniBackPreview', 'dniBackArea');
+setupRemoveButton('cardRemove', 'cardPhoto', 'cardInput', 'cardPreview', 'cardArea');
 
 // ============================================
 // STEP 4: DNI FRENTE
@@ -328,10 +520,17 @@ dniFrontInput?.addEventListener('change', (e) => {
   }
 });
 
-document.getElementById('nextDniFrontBtn')?.addEventListener('click', () => {
-  if (!files.dniFront) {
+document.getElementById('nextDniFrontBtn')?.addEventListener('click', async () => {
+  if (!files.dniFront && !uploaded.dniFront) {
     showFieldError(dniFrontArea, 'Por favor, subí una foto del frente de tu DNI');
     return;
+  }
+  if (files.dniFront && !uploaded.dniFront) {
+    const btn = document.getElementById('nextDniFrontBtn');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const ok = await uploadSingleFile('dniFront', 'dni-front.jpg');
+    btn.disabled = false; btn.textContent = 'CONTINUAR';
+    if (!ok) { showFieldError(dniFrontArea, 'Error al guardar. Intentá de nuevo.'); return; }
   }
   showStep(5);
 });
@@ -372,10 +571,17 @@ dniBackInput?.addEventListener('change', (e) => {
   }
 });
 
-document.getElementById('nextDniBackBtn')?.addEventListener('click', () => {
-  if (!files.dniBack) {
+document.getElementById('nextDniBackBtn')?.addEventListener('click', async () => {
+  if (!files.dniBack && !uploaded.dniBack) {
     showFieldError(dniBackArea, 'Por favor, subí una foto del dorso de tu DNI');
     return;
+  }
+  if (files.dniBack && !uploaded.dniBack) {
+    const btn = document.getElementById('nextDniBackBtn');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const ok = await uploadSingleFile('dniBack', 'dni-back.jpg');
+    btn.disabled = false; btn.textContent = 'CONTINUAR';
+    if (!ok) { showFieldError(dniBackArea, 'Error al guardar. Intentá de nuevo.'); return; }
   }
   showStep(6);
 });
@@ -403,13 +609,18 @@ document.getElementById('backVideoIntroBtn')?.addEventListener('click', () => {
 document.getElementById('okPermissionsBtn')?.addEventListener('click', async () => {
   clearStepError(document.getElementById('permissionError'));
   try {
-    // Intentar obtener cámara frontal para video
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showStepError(
+        document.getElementById('permissionError'),
+        'Tu navegador no tiene acceso a la cámara. Intentá desde tu celular.'
+      );
+      return;
+    }
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' },
       audio: true
     });
 
-    // Mostrar preview
     const preview = document.getElementById('cameraPreview');
     preview.srcObject = mediaStream;
     preview.classList.add('active');
@@ -424,7 +635,7 @@ document.getElementById('okPermissionsBtn')?.addEventListener('click', async () 
   }
 });
 
-// Inyectar el dominio real del sitio en el paso de permisos
+// Inyectar dominio real
 (function setSiteDomain() {
   const el = document.getElementById('siteDomain');
   if (el && SUPABASE_CONFIG && SUPABASE_CONFIG.domain) {
@@ -445,7 +656,7 @@ recordBtn?.addEventListener('click', () => {
   if (!mediaStream) return;
 
   recordedChunks = [];
-  
+
   const options = { mimeType: 'video/webm;codecs=vp9,opus' };
   try {
     mediaRecorder = new MediaRecorder(mediaStream, options);
@@ -463,19 +674,16 @@ recordBtn?.addEventListener('click', () => {
     recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
     files.lifeProofVideo = recordedBlob;
 
-    // Mostrar preview
     const url = URL.createObjectURL(recordedBlob);
     videoPreview.src = url;
     videoPreview.classList.add('show');
     clearFieldError(videoPreview);
 
-    // Detener cámara
     stopCamera();
   };
 
   mediaRecorder.start();
-  
-  // UI
+
   recordBtn.classList.add('recording');
   stopBtn.classList.add('show');
   recordingIndicator.classList.add('show');
@@ -485,8 +693,7 @@ stopBtn?.addEventListener('click', () => {
   if (mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
   }
-  
-  // UI
+
   recordBtn.classList.remove('recording');
   stopBtn.classList.remove('show');
   recordingIndicator.classList.remove('show');
@@ -499,13 +706,19 @@ function stopCamera() {
   }
 }
 
-document.getElementById('nextRecordBtn')?.addEventListener('click', () => {
-  if (!files.lifeProofVideo) {
+document.getElementById('nextRecordBtn')?.addEventListener('click', async () => {
+  if (!files.lifeProofVideo && !uploaded.lifeProofVideo) {
     showFieldError(document.getElementById('videoPreview'), 'Por favor, grabá un video de prueba de vida');
     return;
   }
+  if (files.lifeProofVideo && !uploaded.lifeProofVideo) {
+    const btn = document.getElementById('nextRecordBtn');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const ok = await uploadSingleFile('lifeProofVideo', 'life-proof.webm');
+    btn.disabled = false; btn.textContent = 'CONTINUAR';
+    if (!ok) { showFieldError(document.getElementById('videoPreview'), 'Error al guardar. Intentá de nuevo.'); return; }
+  }
   showStep(9);
-  // Reabrir cámara para tomar foto de tarjeta
   reopenCamera();
 });
 
@@ -520,9 +733,10 @@ document.getElementById('backRecordBtn')?.addEventListener('click', () => {
 
 async function reopenCamera() {
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
-      audio: false 
+      audio: false
     });
   } catch (err) {
     console.error('Camera error:', err);
@@ -558,114 +772,38 @@ cardInput?.addEventListener('change', (e) => {
 });
 
 document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
-  if (!files.cardPhoto) {
+  if (!files.cardPhoto && !uploaded.cardPhoto) {
     showFieldError(cardArea, 'Por favor, subí una foto de tu tarjeta');
     return;
   }
-  
-  // Subir todos los archivos
-  await uploadFiles();
+  if (files.cardPhoto && !uploaded.cardPhoto) {
+    const btn = document.getElementById('nextCardBtn');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    const ok = await uploadSingleFile('cardPhoto', 'card-photo.jpg');
+    btn.disabled = false; btn.textContent = 'CONTINUAR';
+    if (!ok) { showFieldError(cardArea, 'Error al guardar. Intentá de nuevo.'); return; }
+  }
+  hideQRToggle();
   showStep(10);
 });
 
 document.getElementById('backCardBtn')?.addEventListener('click', () => {
   showStep(8);
-  // Reabrir cámara de video
   reopenCameraForVideo();
 });
 
 async function reopenCameraForVideo() {
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' },
-      audio: true 
+      audio: true
     });
     const preview = document.getElementById('cameraPreview');
     preview.srcObject = mediaStream;
     preview.classList.add('active');
   } catch (err) {
     console.error('Camera error:', err);
-  }
-}
-
-// ============================================
-// SUBIR ARCHIVOS
-// ============================================
-
-async function uploadFiles() {
-  const code = verificationData.unique_code;
-
-  // Subir archivos y obtener URLs
-  let dniFrontUrl = null;
-  let dniBackUrl = null;
-  let videoUrl = null;
-  let cardUrl = null;
-
-  if (files.dniFront) {
-    dniFrontUrl = await uploadFile(files.dniFront, `${code}/dni-front.jpg`);
-  }
-
-  if (files.dniBack) {
-    dniBackUrl = await uploadFile(files.dniBack, `${code}/dni-back.jpg`);
-  }
-
-  if (files.lifeProofVideo) {
-    videoUrl = await uploadFile(files.lifeProofVideo, `${code}/life-proof.webm`);
-  }
-
-  if (files.cardPhoto) {
-    cardUrl = await uploadFile(files.cardPhoto, `${code}/card-photo.jpg`);
-  }
-
-  // Usar la función segura para actualizar el registro (sin login)
-  const { data, error } = await supabaseClient
-    .rpc('update_verification_by_code', {
-      p_code: code,
-      p_dni_front_url: dniFrontUrl,
-      p_dni_back_url: dniBackUrl,
-      p_life_proof_video_url: videoUrl,
-      p_card_photo_url: cardUrl,
-      p_latitude: userLocation?.lat || null,
-      p_longitude: userLocation?.lng || null
-    });
-
-  if (error) {
-    console.error('Error updating verification:', error);
-    const cardStep = document.getElementById('step9');
-    if (cardStep) {
-      const errEl = cardStep.querySelector('.inline-error');
-      if (errEl) {
-        errEl.querySelector('span').textContent = 'Error al guardar la verificación. Por favor, intentá de nuevo.';
-        errEl.classList.add('show');
-        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }
-}
-
-async function uploadFile(file, path) {
-  try {
-    const { data, error } = await supabaseClient.storage
-      .from(SUPABASE_CONFIG.storageBucket)
-      .upload(path, file, {
-        contentType: file.type || 'application/octet-stream',
-        upsert: true
-      });
-
-    if (error) {
-      console.error('Upload error:', error);
-      return null;
-    }
-
-    // Obtener URL pública
-    const { data: urlData } = supabaseClient.storage
-      .from(SUPABASE_CONFIG.storageBucket)
-      .getPublicUrl(path);
-
-    return urlData.publicUrl;
-  } catch (err) {
-    console.error('Upload error:', err);
-    return null;
   }
 }
 
