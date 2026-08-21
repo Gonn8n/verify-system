@@ -301,8 +301,10 @@ function setupLinkButtons(url, email, firstName) {
 
   // WhatsApp
   whatsappLinkBtn.onclick = () => {
+    const phone = (verificationData.phone || '').replace(/[^0-9]/g, '');
+    const phoneWithCountry = phone.startsWith('54') ? phone : '549' + phone;
     const text = encodeURIComponent(`Hola ${firstName}, necesitamos que verifiques tu compra. Hacé click en el enlace: ${url}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
   };
 }
 
@@ -371,8 +373,10 @@ async function openDetail(id) {
   };
 
   document.getElementById('detailWhatsappBtn').onclick = () => {
+    const phone = (verification.phone || '').replace(/[^0-9]/g, '');
+    const phoneWithCountry = phone.startsWith('54') ? phone : '549' + phone;
     const text = encodeURIComponent(`Hola ${verification.first_name}, necesitamos que verifiques tu compra. Hacé click en el enlace: ${verificationUrl}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
   };
 
   // Documentos
