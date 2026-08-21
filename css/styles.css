@@ -938,6 +938,8 @@ p {
 }
 
 .qr-modal-content img {
+  display: block;
+  margin: 0 auto;
   border-radius: var(--radius-md);
 }
 
@@ -1936,22 +1938,22 @@ p {
   font-size: var(--text-xs);
   word-break: break-all;
   margin: var(--space-3) 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: block;
+  text-align: center;
   border: 1px solid var(--color-border);
 }
 
 .generated-link-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
   color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
 .link-actions {
   display: flex;
+  justify-content: center;
   gap: var(--space-2);
 }
 

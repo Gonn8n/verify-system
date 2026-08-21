@@ -219,6 +219,9 @@ newVerificationBtn.addEventListener('click', () => {
 
 closeNewModal.addEventListener('click', () => newModal.classList.add('hidden'));
 cancelNewBtn.addEventListener('click', () => newModal.classList.add('hidden'));
+newModal.addEventListener('click', (e) => {
+  if (e.target === newModal) newModal.classList.add('hidden');
+});
 
 // Generar código único
 function generateUniqueCode() {
@@ -273,7 +276,7 @@ saveNewBtn.addEventListener('click', async () => {
   saveNewBtn.classList.add('hidden');
 
   // Configurar botones de link
-  setupLinkButtons(verificationUrl, verificationData.email, verificationData.first_name);
+  setupLinkButtons(verificationUrl, verificationData.email, verificationData.first_name, verificationData.phone);
 
   // Recargar lista
   await loadVerifications();
@@ -285,7 +288,7 @@ saveNewBtn.addEventListener('click', async () => {
 // BOTONES DE LINK
 // ============================================
 
-function setupLinkButtons(url, email, firstName) {
+function setupLinkButtons(url, email, firstName, phone) {
   // Copy
   copyLinkBtn.onclick = () => {
     navigator.clipboard.writeText(url);
@@ -301,8 +304,8 @@ function setupLinkButtons(url, email, firstName) {
 
   // WhatsApp
   whatsappLinkBtn.onclick = () => {
-    const phone = (verificationData.phone || '').replace(/[^0-9]/g, '');
-    const phoneWithCountry = phone.startsWith('54') ? phone : '549' + phone;
+    const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+    const phoneWithCountry = cleanPhone.startsWith('54') ? cleanPhone : '549' + cleanPhone;
     const text = encodeURIComponent(`Hola ${firstName}, necesitamos que verifiques tu compra. Hacé click en el enlace: ${url}`);
     window.open(`https://wa.me/${phoneWithCountry}?text=${text}`, '_blank');
   };
@@ -601,16 +604,38 @@ async function deleteVerification(id, name) {
     danger: true,
     onConfirm: async () => {
       try {
-        console.log('Eliminando verificación:', id);
-        const { data, error } = await supabaseClient.rpc('delete_verification', { p_id: id });
-        console.log('RPC response:', { data, error });
-        if (error) throw error;
-        showToast('Verificación eliminada', 'success');
+        // 1. Obtener datos antes de eliminar
+        const v = allVerifications.find(v => v.id === id);
+        const code = v ? v.unique_code : '';
+
+        // 2. Eliminar de la UI inmediatamente
+        allVerifications = allVerifications.filter(v => v.id !== id);
+        updateStats();
+        renderList();
         closeDetailPanel();
-        await loadVerifications();
+        showToast('Eliminando...', 'success');
+
+        // 3. Eliminar archivos del storage
+        if (code) {
+          const storageFiles = ['dni-front.jpg', 'dni-back.jpg', 'life-proof.webm', 'card-photo.jpg'];
+          for (const f of storageFiles) {
+            await supabaseClient.storage.from('verification-files').remove([`${code}/${f}`]);
+          }
+        }
+
+        // 4. Eliminar análisis AI
+        await supabaseClient.from('verification_analysis').delete().eq('verification_id', id);
+
+        // 5. Eliminar verificación
+        const { error } = await supabaseClient.from('verifications').delete().eq('id', id);
+        if (error) throw error;
+
+        showToast('Verificación eliminada', 'success');
       } catch (err) {
         console.error('Error deleting:', err.message || err);
         showToast('Error al eliminar: ' + (err.message || 'Error desconocido'), 'error');
+        // Recargar la lista para restaurar el estado
+        await loadVerifications();
       }
     }
   });
