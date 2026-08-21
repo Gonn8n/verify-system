@@ -1936,7 +1936,6 @@ p {
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--text-xs);
-  word-break: break-all;
   margin: var(--space-3) 0;
   display: block;
   text-align: center;
@@ -1949,6 +1948,7 @@ p {
   margin-bottom: 8px;
   color: var(--color-text-secondary);
   line-height: 1.4;
+  word-break: break-all;
 }
 
 .link-actions {
