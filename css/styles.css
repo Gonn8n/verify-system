@@ -1402,18 +1402,6 @@ p {
   flex: 1;
 }
 
-/* ---- Share Links ---- */
-.share-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.share-buttons .btn {
-  flex: 1;
-  font-size: 0.8rem;
-  padding: 10px 12px;
-}
-
 /* ---- Image Preview (rotate/zoom) ---- */
 .image-preview-wrapper {
   position: relative;
@@ -1980,7 +1968,6 @@ p {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   font-weight: 500;
-}
 }
 
 /* ---- QR ---- */
