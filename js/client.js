@@ -66,16 +66,33 @@ const STEP_META = {
 
 const TOTAL_STEPS = 8;
 
+// ============================================
+// SEGURIDAD - Escape HTML
+// ============================================
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
 // Error inline bajo un elemento
 function showFieldError(areaEl, message) {
   clearFieldError(areaEl);
   const err = document.createElement('div');
   err.className = 'field-error';
   err.setAttribute('role', 'alert');
-  err.innerHTML = `
-    <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
-    <span>${message}</span>
-  `;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'icon');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', '#i-alert-circle');
+  svg.appendChild(use);
+  const span = document.createElement('span');
+  span.textContent = message;
+  err.appendChild(svg);
+  err.appendChild(span);
   areaEl.classList.add('is-invalid');
   areaEl.after(err);
   err.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -140,7 +157,11 @@ function generateQRModal() {
   const imgContainer = document.getElementById('qrModalImage');
   const urlEl = document.getElementById('qrModalUrl');
   if (imgContainer) {
-    imgContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR Code">`;
+    const qrImg = document.createElement('img');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+    qrImg.alt = 'QR Code';
+    imgContainer.innerHTML = '';
+    imgContainer.appendChild(qrImg);
   }
   if (urlEl) {
     urlEl.textContent = url;
@@ -234,17 +255,24 @@ function isMobile() {
 }
 
 function showError(message) {
-  document.querySelector('.verify-content').innerHTML = `
-    <div class="step-container active">
-      <div class="intro-card text-center">
-        <div class="status-icon status-icon-error">
-          <svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>
-        </div>
-        <h2>Error</h2>
-        <p>${message}</p>
-      </div>
-    </div>
-  `;
+  const container = document.querySelector('.verify-content');
+  container.innerHTML = '';
+  const stepContainer = document.createElement('div');
+  stepContainer.className = 'step-container active';
+  const introCard = document.createElement('div');
+  introCard.className = 'intro-card text-center';
+  const statusIcon = document.createElement('div');
+  statusIcon.className = 'status-icon status-icon-error';
+  statusIcon.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg>';
+  const h2 = document.createElement('h2');
+  h2.textContent = 'Error';
+  const p = document.createElement('p');
+  p.textContent = message;
+  introCard.appendChild(statusIcon);
+  introCard.appendChild(h2);
+  introCard.appendChild(p);
+  stepContainer.appendChild(introCard);
+  container.appendChild(stepContainer);
 }
 
 function showCompletedMessage() {
@@ -280,10 +308,10 @@ function showCompletedMessage() {
       <div class="intro-card">
         <div class="success-container">
           <div class="status-icon ${iconClass}">
-            <svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg>
+            <svg class="icon" aria-hidden="true"><use href="#${escapeHtml(icon)}"/></svg>
           </div>
-          <h1>${title}</h1>
-          <p>${body}</p>
+          <h1>${escapeHtml(title)}</h1>
+          <p>${escapeHtml(body)}</p>
           ${badgeHtml}
         </div>
       </div>
@@ -352,12 +380,18 @@ function generateQR() {
 
   const qrContainer = document.getElementById('qrCode');
   if (qrContainer) {
-    qrContainer.innerHTML = `
-      <div class="qr-frame">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR Code">
-      </div>
-      <p class="caption mt-3">Escaneá el QR y seguí desde tu celular</p>
-    `;
+    qrContainer.innerHTML = '';
+    const qrFrame = document.createElement('div');
+    qrFrame.className = 'qr-frame';
+    const qrImg = document.createElement('img');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+    qrImg.alt = 'QR Code';
+    qrFrame.appendChild(qrImg);
+    const caption = document.createElement('p');
+    caption.className = 'caption mt-3';
+    caption.textContent = 'Escaneá el QR y seguí desde tu celular';
+    qrContainer.appendChild(qrFrame);
+    qrContainer.appendChild(caption);
   }
 }
 

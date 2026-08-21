@@ -37,6 +37,17 @@ const filterTabs = document.querySelectorAll('.filter-tab');
 const toast = document.getElementById('toast');
 
 // ============================================
+// SEGURIDAD - Escape HTML
+// ============================================
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+// ============================================
 // AUTENTICACIÓN
 // ============================================
 
@@ -155,20 +166,21 @@ function renderList() {
 
   verificationList.innerHTML = filtered.map(v => {
     const initials = ((v.first_name || '')[0] || '') + ((v.last_name || '')[0] || '');
+    const safeStatus = (v.status || 'pending').replace('in_review', 'review');
     return `
-    <div class="admin-card status-${v.status}" data-id="${v.id}">
-      <div class="avatar">${initials || '?'}</div>
+    <div class="admin-card status-${escapeHtml(v.status)}" data-id="${escapeHtml(v.id)}">
+      <div class="avatar">${escapeHtml(initials) || '?'}</div>
       <div class="admin-card-body">
         <div class="admin-card-header">
           <div>
-            <div class="admin-card-name">${v.first_name} ${v.last_name}</div>
-            <div class="admin-card-code">${v.unique_code}</div>
+            <div class="admin-card-name">${escapeHtml(v.first_name)} ${escapeHtml(v.last_name)}</div>
+            <div class="admin-card-code">${escapeHtml(v.unique_code)}</div>
           </div>
-          <span class="badge badge-dot badge-${v.status.replace('in_review', 'review')}">${getStatusLabel(v.status)}</span>
+          <span class="badge badge-dot badge-${escapeHtml(safeStatus)}">${escapeHtml(getStatusLabel(v.status))}</span>
         </div>
         <div class="admin-card-meta">
-          <span>DNI: ${v.dni}</span>
-          <span>${formatDate(v.created_at)}</span>
+          <span>DNI: ${escapeHtml(v.dni)}</span>
+          <span>${escapeHtml(formatDate(v.created_at))}</span>
         </div>
       </div>
       <svg class="icon admin-card-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
@@ -334,7 +346,8 @@ async function openDetail(id) {
   document.getElementById('detailPhone').textContent = verification.phone;
   document.getElementById('detailCard').textContent = verification.card_last_four || 'No proporcionado';
   document.getElementById('detailCode').textContent = verification.unique_code;
-  document.getElementById('detailStatusBadge').innerHTML = `<span class="badge badge-${verification.status.replace('in_review', 'review')}">${getStatusLabel(verification.status)}</span>`;
+  const safeStatus = (verification.status || 'pending').replace('in_review', 'review');
+  document.getElementById('detailStatusBadge').innerHTML = `<span class="badge badge-${escapeHtml(safeStatus)}">${escapeHtml(getStatusLabel(verification.status))}</span>`;
   document.getElementById('detailCreated').textContent = formatDate(verification.created_at);
 
   // Ubicación
@@ -435,30 +448,57 @@ function renderMedia(containerId, url, type) {
   }
 
   if (type === 'video') {
-    container.innerHTML = `
-      <div class="video-preview-container">
-        <video controls src="${url}"></video>
-      </div>
-    `;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'video-preview-container';
+    const video = document.createElement('video');
+    video.controls = true;
+    video.src = url;
+    wrapper.appendChild(video);
+    container.innerHTML = '';
+    container.appendChild(wrapper);
   } else {
     const savedRotation = parseInt(localStorage.getItem('rotation_' + url) || '0', 10);
     const rotationStyle = savedRotation ? `transform: rotate(${savedRotation}deg);` : '';
-    container.innerHTML = `
-      <div class="image-preview-wrapper">
-        <img src="${url}" alt="Documento" data-rotation="${savedRotation}" style="${rotationStyle}" onclick="openImageModal('${url}', parseInt(this.dataset.rotation || '0'))">
-        <div class="media-actions">
-          <button class="media-action-btn media-rotate" onclick="rotateMediaImage(this)" title="Rotar 90°">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
-          </button>
-          <button class="media-action-btn media-zoom" onclick="openImageModal('${url}', parseInt(this.closest('.image-preview-wrapper').querySelector('img').dataset.rotation || '0'))" title="Ver tamaño completo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-          </button>
-          <a href="${url}" download class="media-action-btn media-download" title="Descargar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          </a>
-        </div>
-      </div>
-    `;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'image-preview-wrapper';
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Documento';
+    img.dataset.rotation = savedRotation;
+    img.style.cssText = rotationStyle;
+    img.addEventListener('click', () => openImageModal(url, savedRotation));
+
+    const actions = document.createElement('div');
+    actions.className = 'media-actions';
+
+    const rotateBtn = document.createElement('button');
+    rotateBtn.className = 'media-action-btn media-rotate';
+    rotateBtn.title = 'Rotar 90°';
+    rotateBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>';
+    rotateBtn.addEventListener('click', () => rotateMediaImage(rotateBtn));
+
+    const zoomBtn = document.createElement('button');
+    zoomBtn.className = 'media-action-btn media-zoom';
+    zoomBtn.title = 'Ver tamaño completo';
+    zoomBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>';
+    zoomBtn.addEventListener('click', () => openImageModal(url, parseInt(img.dataset.rotation || '0')));
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = '';
+    downloadLink.className = 'media-action-btn media-download';
+    downloadLink.title = 'Descargar';
+    downloadLink.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+
+    actions.appendChild(rotateBtn);
+    actions.appendChild(zoomBtn);
+    actions.appendChild(downloadLink);
+    wrapper.appendChild(img);
+    wrapper.appendChild(actions);
+    container.innerHTML = '';
+    container.appendChild(wrapper);
   }
 }
 
@@ -485,18 +525,32 @@ function openImageModal(url, rotation = 0) {
   const modal = document.createElement('div');
   modal.id = 'imageModal';
   modal.className = 'image-modal-overlay';
-  modal.innerHTML = `
-    <div class="image-modal-content">
-      <button class="image-modal-close" onclick="closeImageModal()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-      <img src="${url}" alt="Documento completo" style="${rotationStyle}">
-      <a href="${url}" download class="image-modal-download" title="Descargar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Descargar
-      </a>
-    </div>
-  `;
+
+  const content = document.createElement('div');
+  content.className = 'image-modal-content';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'image-modal-close';
+  closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+  closeBtn.addEventListener('click', closeImageModal);
+
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = 'Documento completo';
+  img.style.cssText = rotationStyle;
+
+  const downloadLink = document.createElement('a');
+  downloadLink.href = url;
+  downloadLink.download = '';
+  downloadLink.className = 'image-modal-download';
+  downloadLink.title = 'Descargar';
+  downloadLink.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Descargar';
+
+  content.appendChild(closeBtn);
+  content.appendChild(img);
+  content.appendChild(downloadLink);
+  modal.appendChild(content);
+
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeImageModal();
   });
@@ -549,7 +603,8 @@ async function updateStatus(newStatus) {
   // Actualizar detalle
   const updated = allVerifications.find(v => v.id === currentDetailId);
   if (updated) {
-    document.getElementById('detailStatusBadge').innerHTML = `<span class="badge badge-${newStatus.replace('in_review', 'review')}">${getStatusLabel(newStatus)}</span>`;
+    const safeStatus = (newStatus || 'pending').replace('in_review', 'review');
+    document.getElementById('detailStatusBadge').innerHTML = `<span class="badge badge-${escapeHtml(safeStatus)}">${escapeHtml(getStatusLabel(newStatus))}</span>`;
   }
 }
 
@@ -675,7 +730,7 @@ async function loadExistingAnalysis(verificationId) {
   const recClasses = { low_risk: 'rec-low', medium_risk: 'rec-medium', high_risk: 'rec-high', manual_review: 'rec-review' };
   const recLabel = recLabels[rec] || rec.toUpperCase();
   const recClass = recClasses[rec] || 'rec-medium';
-  recEl.innerHTML = `<span class="rec-badge ${recClass}">${recLabel}</span>`;
+  recEl.innerHTML = `<span class="rec-badge ${escapeHtml(recClass)}">${escapeHtml(recLabel)}</span>`;
 
   // Scores per document
   function scoreBarClass(score) { return score >= 80 ? 'high' : score >= 50 ? 'medium' : 'low'; }
@@ -701,7 +756,7 @@ async function loadExistingAnalysis(verificationId) {
   if (data.summary && (Array.isArray(data.summary) ? data.summary.length : true)) {
     summaryEl.style.display = '';
     const items = Array.isArray(data.summary) ? data.summary : String(data.summary).split('\n').filter(Boolean);
-    summaryContent.innerHTML = `<ul class="summary-list">${items.map(l => `<li>${l}</li>`).join('')}</ul>`;
+    summaryContent.innerHTML = `<ul class="summary-list">${items.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`;
   } else {
     summaryEl.style.display = 'none';
   }
@@ -716,7 +771,7 @@ async function loadExistingAnalysis(verificationId) {
   ];
   if (allFindings.length) {
     findingsEl.style.display = '';
-    findingsContent.innerHTML = `<ul class="summary-list">${allFindings.map(f => `<li>${f}</li>`).join('')}</ul>`;
+    findingsContent.innerHTML = `<ul class="summary-list">${allFindings.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>`;
   } else {
     findingsEl.style.display = 'none';
   }
@@ -727,7 +782,7 @@ async function loadExistingAnalysis(verificationId) {
   if (data.data_consistency && typeof data.data_consistency === 'object') {
     consistencyEl.style.display = '';
     const labels = { front_back_match: 'Frente ↔ Dorso', text_readable: 'Texto legible', document_intact: 'Documento intacto' };
-    consistencyContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_consistency).map(([k, v]) => `<li class="${v ? 'match-yes' : 'match-no'}">${labels[k] || k}</li>`).join('')}</ul>`;
+    consistencyContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_consistency).map(([k, v]) => `<li class="${v ? 'match-yes' : 'match-no'}">${escapeHtml(labels[k] || k)}</li>`).join('')}</ul>`;
   } else {
     consistencyEl.style.display = 'none';
   }
@@ -738,7 +793,7 @@ async function loadExistingAnalysis(verificationId) {
   if (data.data_match && typeof data.data_match === 'object') {
     dataMatchEl.style.display = '';
     const labels = { name_match: 'Nombre', dni_match: 'DNI', card_match: 'Tarjeta' };
-    dataMatchContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_match).filter(([k]) => labels[k]).map(([k, v]) => `<li class="${v ? 'match-yes' : 'match-no'}">${labels[k]}</li>`).join('')}</ul>`;
+    dataMatchContent.innerHTML = `<ul class="summary-list">${Object.entries(data.data_match).filter(([k]) => labels[k]).map(([k, v]) => `<li class="${v ? 'match-yes' : 'match-no'}">${escapeHtml(labels[k])}</li>`).join('')}</ul>`;
   } else {
     dataMatchEl.style.display = 'none';
   }
@@ -754,9 +809,9 @@ async function loadExistingAnalysis(verificationId) {
         const confidence = s.confidence || 0;
         const location = s.location || '';
         const desc = s.description || s.signal || JSON.stringify(s);
-        return `<li class="fraud-signal severity-${severity}"><span class="signal-severity">${severity.toUpperCase()}</span> <span class="signal-confidence">${confidence}%</span>${location ? ` <span class="signal-location">en ${location}</span>` : ''}<div class="signal-desc">${desc}</div></li>`;
+        return `<li class="fraud-signal severity-${escapeHtml(severity)}"><span class="signal-severity">${escapeHtml(severity.toUpperCase())}</span> <span class="signal-confidence">${escapeHtml(confidence)}%</span>${location ? ` <span class="signal-location">en ${escapeHtml(location)}</span>` : ''}<div class="signal-desc">${escapeHtml(desc)}</div></li>`;
       }
-      return `<li>${s}</li>`;
+      return `<li>${escapeHtml(s)}</li>`;
     }).join('')}</ul>`;
   } else {
     fraudEl.style.display = 'none';
