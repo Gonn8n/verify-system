@@ -2478,6 +2478,7 @@ body.login-page {
 }
 
 .filter-tab {
+  flex: 1;
   padding: var(--space-2) var(--space-4);
   border: none;
   background: transparent;
@@ -2489,6 +2490,7 @@ body.login-page {
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
   color: var(--color-text-secondary);
   min-height: 40px;
+  text-align: center;
 }
 
 .filter-tab.active {
