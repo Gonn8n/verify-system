@@ -822,7 +822,7 @@ document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
 
   // Notificar al operador que el cliente completó la carga (fire-and-forget)
   try {
-    fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+    fetch(`${SUPABASE_CONFIG.url}/functions/v1/resend-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

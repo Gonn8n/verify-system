@@ -315,7 +315,7 @@ function setupLinkButtons(url, email, firstName, phone, uniqueCode) {
     emailLinkBtn.disabled = true;
     emailLinkBtn.textContent = 'Enviando...';
     try {
-      const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+      const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/resend-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -416,7 +416,7 @@ async function openDetail(id) {
     btn.disabled = true;
     btn.textContent = 'Enviando...';
     try {
-      const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+      const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/resend-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -675,7 +675,7 @@ async function sendStatusEmail(verificationId, status) {
   const emailType = status === 'approved' ? 'status_approved' : 'status_rejected';
 
   try {
-    const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+    const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/resend-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
