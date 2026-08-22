@@ -27,6 +27,7 @@ const cancelNewBtn = document.getElementById('cancelNewBtn');
 const newVerificationForm = document.getElementById('newVerificationForm');
 const saveNewBtn = document.getElementById('saveNewBtn');
 const generatedLink = document.getElementById('generatedLink');
+const generatedLinkButtons = document.getElementById('generatedLinkButtons');
 const linkText = document.getElementById('linkText');
 const copyLinkBtn = document.getElementById('copyLinkBtn');
 const emailLinkBtn = document.getElementById('emailLinkBtn');
@@ -225,6 +226,7 @@ newVerificationBtn.addEventListener('click', () => {
   newModal.classList.remove('hidden');
   newVerificationForm.reset();
   generatedLink.classList.add('hidden');
+  generatedLinkButtons.classList.add('hidden');
   saveNewBtn.disabled = false;
   saveNewBtn.textContent = 'Crear Verificación';
 });
@@ -285,10 +287,11 @@ saveNewBtn.addEventListener('click', async () => {
   const verificationUrl = `${SUPABASE_CONFIG.domain}/v/?code=${uniqueCode}`;
   linkText.textContent = verificationUrl;
   generatedLink.classList.remove('hidden');
+  generatedLinkButtons.classList.remove('hidden');
   saveNewBtn.classList.add('hidden');
 
   // Configurar botones de link
-  setupLinkButtons(verificationUrl, verificationData.email, verificationData.first_name, verificationData.phone);
+  setupLinkButtons(verificationUrl, verificationData.email, verificationData.first_name, verificationData.phone, uniqueCode);
 
   // Recargar lista
   await loadVerifications();
@@ -300,7 +303,7 @@ saveNewBtn.addEventListener('click', async () => {
 // BOTONES DE LINK
 // ============================================
 
-function setupLinkButtons(url, email, firstName, phone) {
+function setupLinkButtons(url, email, firstName, phone, uniqueCode) {
   // Copy
   copyLinkBtn.onclick = () => {
     navigator.clipboard.writeText(url);
@@ -308,10 +311,36 @@ function setupLinkButtons(url, email, firstName, phone) {
   };
 
   // Email
-  emailLinkBtn.onclick = () => {
-    const subject = encodeURIComponent('Verificá tu compra');
-    const body = encodeURIComponent(`Hola ${firstName},\n\nNecesitamos que verifiques tu compra. Hacé click en el siguiente enlace:\n\n${url}\n\nTenés 24 horas para completar la verificación.\n\nSaludos,\nEquipo Verify`);
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+  emailLinkBtn.onclick = async () => {
+    emailLinkBtn.disabled = true;
+    emailLinkBtn.textContent = 'Enviando...';
+    try {
+      const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({
+          type: 'verification_request',
+          to: email,
+          firstName: firstName,
+          verificationUrl: url,
+          uniqueCode: uniqueCode,
+          commerceName: SUPABASE_CONFIG.commerceName
+        })
+      });
+      if (response.ok) {
+        showToast('Email enviado exitosamente', 'success');
+      } else {
+        const err = await response.json();
+        showToast('Error al enviar email: ' + (err.error || 'Error desconocido'), 'error');
+      }
+    } catch (err) {
+      showToast('Error al enviar email', 'error');
+    }
+    emailLinkBtn.disabled = false;
+    emailLinkBtn.textContent = 'Email';
   };
 
   // WhatsApp
@@ -382,10 +411,37 @@ async function openDetail(id) {
     }
   };
 
-  document.getElementById('detailEmailBtn').onclick = () => {
-    const subject = encodeURIComponent('Verificá tu compra');
-    const body = encodeURIComponent(`Hola ${verification.first_name},\n\nNecesitamos que verifiques tu compra. Hacé click en el siguiente enlace:\n\n${verificationUrl}\n\nTenés 24 horas para completar la verificación.\n\nSaludos,\nEquipo Verify`);
-    window.open(`mailto:${verification.email}?subject=${subject}&body=${body}`);
+  document.getElementById('detailEmailBtn').onclick = async () => {
+    const btn = document.getElementById('detailEmailBtn');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    try {
+      const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+        },
+        body: JSON.stringify({
+          type: 'verification_request',
+          to: verification.email,
+          firstName: verification.first_name,
+          verificationUrl: verificationUrl,
+          uniqueCode: verification.unique_code,
+          commerceName: SUPABASE_CONFIG.commerceName
+        })
+      });
+      if (response.ok) {
+        showToast('Email enviado exitosamente', 'success');
+      } else {
+        const err = await response.json();
+        showToast('Error al enviar email: ' + (err.error || 'Error desconocido'), 'error');
+      }
+    } catch (err) {
+      showToast('Error al enviar email', 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg> Email';
   };
 
   document.getElementById('detailWhatsappBtn').onclick = () => {
@@ -616,17 +672,20 @@ async function sendStatusEmail(verificationId, status) {
   const verification = allVerifications.find(v => v.id === verificationId);
   if (!verification) return;
 
+  const emailType = status === 'approved' ? 'status_approved' : 'status_rejected';
+
   try {
-    const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-status-email`, {
+    const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
       },
       body: JSON.stringify({
-        email: verification.email,
+        type: emailType,
+        to: verification.email,
         firstName: verification.first_name,
-        status: status,
+        uniqueCode: verification.unique_code,
         commerceName: SUPABASE_CONFIG.commerceName
       })
     });

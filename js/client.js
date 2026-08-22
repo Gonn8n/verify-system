@@ -819,6 +819,25 @@ document.getElementById('nextCardBtn')?.addEventListener('click', async () => {
   }
   hideQRToggle();
   showStep(10);
+
+  // Notificar al operador que el cliente completó la carga (fire-and-forget)
+  try {
+    fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+      },
+      body: JSON.stringify({
+        type: 'operator_notification',
+        to: SUPABASE_CONFIG.operatorEmail,
+        firstName: verificationData.first_name,
+        uniqueCode: verificationData.unique_code,
+        verificationUrl: `${SUPABASE_CONFIG.domain}/v/?code=${verificationData.unique_code}`,
+        commerceName: SUPABASE_CONFIG.commerceName
+      })
+    });
+  } catch (e) { /* fire-and-forget */ }
 });
 
 document.getElementById('backCardBtn')?.addEventListener('click', () => {

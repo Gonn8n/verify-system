@@ -18,7 +18,10 @@ const SUPABASE_CONFIG = {
   commerceName: 'Check Maxihogar',
   
   // Bucket de Storage
-  storageBucket: 'verification-files'
+  storageBucket: 'verification-files',
+  
+  // Email del operador (recibe notificaciones cuando el cliente carga datos)
+  operatorEmail: 'gonzan8n@gmail.com'
 };
 
 // Exportar para uso global
