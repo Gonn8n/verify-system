@@ -12,16 +12,16 @@ const SUPABASE_CONFIG = {
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlb2didWVwdnVud3lhdmx0Y2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3NTE1MzIsImV4cCI6MjEwMDMyNzUzMn0.WIlndQsajKccJr4CIfU2SDAe7adtI6wSVTaOmditL-g',
   
   // Dominio del sitio (para generar links)
-  domain: 'https://check.maxihogar.com',
+  domain: 'https://verify.maxihogar.com',
   
   // Nombre del ecommerce (aparece en emails y UI)
-  commerceName: 'Check Maxihogar',
+  commerceName: 'Verify Maxihogar',
   
   // Bucket de Storage
   storageBucket: 'verification-files',
   
   // Email del operador (recibe notificaciones cuando el cliente carga datos)
-  operatorEmail: 'gonzan8n@gmail.com'
+  operatorEmail: 'verify@maxihogar.com'
 };
 
 // Exportar para uso global
