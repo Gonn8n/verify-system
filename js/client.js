@@ -446,7 +446,8 @@ async function uploadFile(file, path) {
     const { data, error } = await supabaseClient.storage
       .from(SUPABASE_CONFIG.storageBucket)
       .upload(path, file, {
-        contentType: file.type || 'application/octet-stream'
+        contentType: file.type || 'application/octet-stream',
+        upsert: true
       });
 
     if (error) {
