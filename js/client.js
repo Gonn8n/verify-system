@@ -473,17 +473,19 @@ async function uploadSingleFile(fileKey, storagePath) {
   const url = await uploadFile(files[fileKey], `${code}/${storagePath}`);
   if (!url) return false;
 
-  // Guardar URL en DB
-  const updateField = {};
-  if (fileKey === 'dniFront') updateField.dni_front_url = url;
-  if (fileKey === 'dniBack') updateField.dni_back_url = url;
-  if (fileKey === 'lifeProofVideo') updateField.life_proof_video_url = url;
-  if (fileKey === 'cardPhoto') updateField.card_photo_url = url;
+  // Guardar URL en DB via RPC SECURITY DEFINER (bypass RLS)
+  const params = { p_code: code };
+  if (fileKey === 'dniFront') params.p_dni_front_url = url;
+  if (fileKey === 'dniBack') params.p_dni_back_url = url;
+  if (fileKey === 'lifeProofVideo') params.p_life_proof_video_url = url;
+  if (fileKey === 'cardPhoto') params.p_card_photo_url = url;
+  if (userLocation) {
+    params.p_latitude = userLocation.lat;
+    params.p_longitude = userLocation.lng;
+  }
 
   const { error } = await supabaseClient
-    .from('verifications')
-    .update(updateField)
-    .eq('id', verificationData.id);
+    .rpc('update_verification_by_code', params);
 
   if (error) {
     console.error('Error updating verification:', error);
