@@ -96,7 +96,7 @@
       "position": [1340, 300],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, verification_id: $json.verification_id, analysis: { overall_score: $json.overall_score, dni_front_score: $json.dni_front_score, dni_back_score: $json.dni_back_score, dni_front_findings: $json.dni_front_findings, dni_back_findings: $json.dni_back_findings, card_photo_score: $json.card_photo_score, card_photo_findings: $json.card_photo_findings, recommendation: $json.recommendation, fraud_signals: $json.fraud_signals, data_match: $json.data_match, data_consistency: $json.data_consistency, summary: $json.summary, extracted_data: { name: $json.extracted_name, dni: $json.extracted_dni, birth_date: $json.extracted_birth_date } } }) }}",
+        "responseBody": "={{ const p = $('Parse Response').item.json; JSON.stringify({ success: true, verification_id: p.verification_id, analysis: { overall_score: p.overall_score, dni_front_score: p.dni_front_score, dni_back_score: p.dni_back_score, dni_front_findings: p.dni_front_findings, dni_back_findings: p.dni_back_findings, card_photo_score: p.card_photo_score, card_photo_findings: p.card_photo_findings, recommendation: p.recommendation, fraud_signals: p.fraud_signals, data_match: p.data_match, data_consistency: p.data_consistency, summary: p.summary, extracted_data: { name: p.extracted_name, dni: p.extracted_dni, birth_date: p.extracted_birth_date } } }) }}",
         "options": { "responseCode": 200 }
       }
     }
@@ -112,10 +112,10 @@
       "main": [[{ "node": "Parse Response", "type": "main", "index": 0 }]]
     },
     "Parse Response": {
-      "main": [[{ "node": "Save Results", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Save Results", "type": "main", "index": 0 }, { "node": "Respond", "type": "main", "index": 0 }]]
     },
     "Save Results": {
-      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+      "main": [[]]
     }
   },
   "settings": { "executionOrder": "v1" },
