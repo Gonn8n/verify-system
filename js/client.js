@@ -41,11 +41,76 @@ let uploaded = {
 
 function requestLocation() {
   if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    (pos) => { userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
-    () => { userLocation = null; },
-    { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-  );
+
+  const onSuccess = (pos) => {
+    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    console.log('Ubicación obtenida:', userLocation);
+  };
+
+  const onError = (err) => {
+    if (err && (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE)) {
+      console.warn('Reintentando geolocalización con alta precisión...');
+      navigator.geolocation.getCurrentPosition(
+        onSuccess,
+        (err2) => {
+          console.warn('Geolocalización no disponible:', err2 && err2.message ? err2.message : err2);
+          userLocation = null;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      console.warn('Geolocalización no disponible:', err && err.message ? err.message : err);
+      userLocation = null;
+    }
+  };
+
+  try {
+    navigator.geolocation.getCurrentPosition(
+      onSuccess,
+      onError,
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+  } catch (e) {
+    console.warn('Error solicitando geolocalización:', e);
+  }
+}
+
+// Espera a que la geolocalización esté disponible (o falle) antes de guardar
+function ensureLocation(timeoutMs = 8000) {
+  return new Promise((resolve) => {
+    if (userLocation) return resolve(userLocation);
+    if (!navigator.geolocation) return resolve(null);
+
+    const done = (loc) => resolve(loc || null);
+    const fallbackTimer = setTimeout(() => {
+      done(userLocation);
+    }, timeoutMs);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(fallbackTimer);
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        done(userLocation);
+      },
+      (err) => {
+        clearTimeout(fallbackTimer);
+        // Reintento con alta precisión
+        if (err && (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE)) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+              done(userLocation);
+            },
+            () => { done(null); },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        } else {
+          done(null);
+        }
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  });
 }
 
 // ============================================
@@ -479,7 +544,14 @@ async function uploadSingleFile(fileKey, storagePath) {
   if (fileKey === 'dniBack') params.p_dni_back_url = url;
   if (fileKey === 'lifeProofVideo') params.p_life_proof_video_url = url;
   if (fileKey === 'cardPhoto') params.p_card_photo_url = url;
-  if (userLocation) {
+  // Al subir el primer archivo, asegurar que la ubicación esté capturada
+  if (Object.keys(uploaded).every(k => !uploaded[k]) || fileKey === 'dniFront') {
+    const loc = await ensureLocation();
+    if (loc) {
+      params.p_latitude = loc.lat;
+      params.p_longitude = loc.lng;
+    }
+  } else if (userLocation) {
     params.p_latitude = userLocation.lat;
     params.p_longitude = userLocation.lng;
   }
