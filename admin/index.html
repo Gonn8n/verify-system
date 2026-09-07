@@ -108,6 +108,10 @@
       <line x1="12" y1="16" x2="12" y2="12"/>
       <line x1="12" y1="8" x2="12.01" y2="8"/>
     </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </symbol>
   </svg>
 
   <!-- Header -->
@@ -166,17 +170,27 @@
 
     <!-- Toolbar -->
     <div class="admin-toolbar">
-      <div class="filter-tabs">
-        <button class="filter-tab active" data-filter="all">Todos</button>
-        <button class="filter-tab" data-filter="pending">Pendientes</button>
-        <button class="filter-tab" data-filter="in_review">Revisión</button>
-        <button class="filter-tab" data-filter="approved">Aprobados</button>
-        <button class="filter-tab" data-filter="rejected">Rechazados</button>
+      <div class="admin-toolbar-row">
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">Todos</button>
+          <button class="filter-tab" data-filter="pending">Pendientes</button>
+          <button class="filter-tab" data-filter="in_review">Revisión</button>
+          <button class="filter-tab" data-filter="approved">Aprobados</button>
+          <button class="filter-tab" data-filter="rejected">Rechazados</button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="newVerificationBtn">
+          <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
+          Nuevo
+        </button>
       </div>
-      <button class="btn btn-primary btn-sm" id="newVerificationBtn">
-        <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
-        Nuevo
-      </button>
+      <div class="admin-search">
+        <div class="admin-search-wrap">
+          <svg class="icon admin-search-icon" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="searchInput" class="admin-search-input" placeholder="Buscar por nombre, DNI o email..." autocomplete="off" spellcheck="false">
+          <button class="admin-search-clear hidden" id="searchClear" aria-label="Limpiar búsqueda">&times;</button>
+        </div>
+        <span class="admin-search-count hidden" id="searchCount"></span>
+      </div>
     </div>
 
     <!-- List -->
@@ -186,6 +200,8 @@
         <p>Cargá una nueva verificación para comenzar</p>
       </div>
     </div>
+    <!-- Pagination -->
+    <div class="pagination hidden" id="pagination"></div>
   </main>
 
   <!-- Modal: Nueva Verificación -->

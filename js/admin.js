@@ -15,6 +15,9 @@ let currentUser = null;
 let currentFilter = 'all';
 let currentDetailId = null;
 let allVerifications = [];
+let currentSearch = '';
+let currentPage = 1;
+const PAGE_SIZE = 10;
 
 // Elementos del DOM
 const userEmail = document.getElementById('userEmail');
@@ -36,6 +39,10 @@ const detailOverlay = document.getElementById('detailOverlay');
 const closeDetail = document.getElementById('closeDetail');
 const filterTabs = document.querySelectorAll('.filter-tab');
 const toast = document.getElementById('toast');
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
+const searchCount = document.getElementById('searchCount');
+const paginationEl = document.getElementById('pagination');
 
 // ============================================
 // SEGURIDAD - Escape HTML
@@ -142,30 +149,92 @@ filterTabs.forEach(tab => {
     filterTabs.forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     currentFilter = tab.dataset.filter;
+    currentPage = 1;
     renderList();
   });
 });
+
+// ============================================
+// BUSCADOR
+// ============================================
+
+let searchDebounce = null;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    currentSearch = searchInput.value.trim().toLowerCase();
+    currentPage = 1;
+    searchClear.classList.toggle('hidden', !currentSearch);
+    renderList();
+  }, 250);
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  currentSearch = '';
+  currentPage = 1;
+  searchClear.classList.add('hidden');
+  renderList();
+});
+
+// ============================================
+// FILTRAR + PAGINAR
+// ============================================
+
+function getFilteredVerifications() {
+  let filtered = allVerifications;
+
+  // Búsqueda global (ignora tab)
+  if (currentSearch) {
+    filtered = filtered.filter(v => {
+      const fullName = ((v.first_name || '') + ' ' + (v.last_name || '')).toLowerCase();
+      const dni = (v.dni || '').toLowerCase();
+      const email = (v.email || '').toLowerCase();
+      return fullName.includes(currentSearch) || dni.includes(currentSearch) || email.includes(currentSearch);
+    });
+  } else if (currentFilter !== 'all') {
+    filtered = filtered.filter(v => v.status === currentFilter);
+  }
+
+  return filtered;
+}
 
 // ============================================
 // RENDERIZAR LISTA
 // ============================================
 
 function renderList() {
-  const filtered = currentFilter === 'all' 
-    ? allVerifications 
-    : allVerifications.filter(v => v.status === currentFilter);
+  const filtered = getFilteredVerifications();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filtered.slice(start, start + PAGE_SIZE);
 
-  if (filtered.length === 0) {
+  // Search count
+  if (currentSearch && filtered.length > 0) {
+    searchCount.textContent = filtered.length + ' resultado' + (filtered.length !== 1 ? 's' : '');
+    searchCount.classList.remove('hidden');
+  } else {
+    searchCount.classList.add('hidden');
+  }
+
+  if (page.length === 0) {
+    const msg = currentSearch
+      ? 'No se encontraron resultados para "' + escapeHtml(searchInput.value.trim()) + '"'
+      : currentFilter === 'all'
+        ? 'Cargá una nueva verificación para comenzar'
+        : 'No hay verificaciones con este estado';
     verificationList.innerHTML = `
       <div class="empty-state">
         <svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg>
-        <p>${currentFilter === 'all' ? 'Cargá una nueva verificación para comenzar' : 'No hay verificaciones con este estado'}</p>
+        <p>${msg}</p>
       </div>
     `;
+    paginationEl.classList.add('hidden');
     return;
   }
 
-  verificationList.innerHTML = filtered.map(v => {
+  verificationList.innerHTML = page.map(v => {
     const initials = ((v.first_name || '')[0] || '') + ((v.last_name || '')[0] || '');
     const safeStatus = (v.status || 'pending').replace('in_review', 'review');
     return `
@@ -193,6 +262,60 @@ function renderList() {
   document.querySelectorAll('.admin-card').forEach(card => {
     card.addEventListener('click', () => {
       openDetail(card.dataset.id);
+    });
+  });
+
+  // Paginación
+  renderPagination(filtered.length, totalPages);
+}
+
+function renderPagination(total, totalPages) {
+  if (totalPages <= 1) {
+    paginationEl.classList.add('hidden');
+    return;
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, total);
+
+  let pagesHtml = '';
+  const maxVisible = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+  if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+  if (startPage > 1) {
+    pagesHtml += `<button class="pagination-btn pagination-page" data-page="1">1</button>`;
+    if (startPage > 2) pagesHtml += `<span class="pagination-ellipsis">...</span>`;
+  }
+  for (let i = startPage; i <= endPage; i++) {
+    pagesHtml += `<button class="pagination-btn pagination-page${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`;
+  }
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) pagesHtml += `<span class="pagination-ellipsis">...</span>`;
+    pagesHtml += `<button class="pagination-btn pagination-page" data-page="${totalPages}">${totalPages}</button>`;
+  }
+
+  paginationEl.innerHTML = `
+    <button class="pagination-btn" id="pagPrev" ${currentPage <= 1 ? 'disabled' : ''}>&lsaquo;</button>
+    ${pagesHtml}
+    <button class="pagination-btn" id="pagNext" ${currentPage >= totalPages ? 'disabled' : ''}>&rsaquo;</button>
+    <span class="pagination-info">${start}–${end} de ${total}</span>
+  `;
+  paginationEl.classList.remove('hidden');
+
+  // Eventos
+  document.getElementById('pagPrev').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderList(); scrollTo(verificationList); }
+  });
+  document.getElementById('pagNext').addEventListener('click', () => {
+    if (currentPage < totalPages) { currentPage++; renderList(); scrollTo(verificationList); }
+  });
+  document.querySelectorAll('.pagination-page').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentPage = parseInt(btn.dataset.page);
+      renderList();
+      scrollTo(verificationList);
     });
   });
 }
