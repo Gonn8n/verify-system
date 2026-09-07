@@ -825,7 +825,7 @@ async function sendStatusEmail(verificationId, status) {
 // ELIMINAR VERIFICACIÓN
 // ============================================
 
-const CONFIRM_WORDS = ['PALOMA', 'MURCIELAGO', 'ELEFANTE', 'CANGREJO', 'TORTUGA', 'JIRAFA', 'COCODRILO', 'BALLENA', 'PUMA', 'CONDOR'];
+const CONFIRM_WORDS = ['LAVARROPAS', 'HELADERA', 'MICROONDAS', 'LICUADORA', 'TOSTADORA', 'CAFETERA', 'BATIDORA', 'ASPIRADORA', 'VENTILADOR', 'CALEFACTOR', 'HORNO', 'FREEZER', 'SECARROPAS', 'TERMOTANQUE', 'PLANCHA', 'EXPRIMIDOR', 'PAVA', 'SANDWICHERA', 'MULTIPROCESADORA', 'PURIFICADOR'];
 
 function getRandomWord() {
   return CONFIRM_WORDS[Math.floor(Math.random() * CONFIRM_WORDS.length)];
