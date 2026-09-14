@@ -55,6 +55,11 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function truncate(str, max) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max) + '...' : str;
+}
+
 // ============================================
 // AUTENTICACIÓN
 // ============================================
@@ -190,7 +195,8 @@ function getFilteredVerifications() {
       const fullName = ((v.first_name || '') + ' ' + (v.last_name || '')).toLowerCase();
       const dni = (v.dni || '').toLowerCase();
       const email = (v.email || '').toLowerCase();
-      return fullName.includes(currentSearch) || dni.includes(currentSearch) || email.includes(currentSearch);
+      const notes = (v.operator_notes || '').toLowerCase();
+      return fullName.includes(currentSearch) || dni.includes(currentSearch) || email.includes(currentSearch) || notes.includes(currentSearch);
     });
   } else if (currentFilter !== 'all') {
     filtered = filtered.filter(v => v.status === currentFilter);
@@ -252,10 +258,16 @@ function renderList() {
           <span>DNI: ${escapeHtml(v.dni)}</span>
           <span>${escapeHtml(formatDate(v.created_at))}</span>
         </div>
-      </div>
-      <svg class="icon admin-card-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
     </div>
-  `;
+    ${v.operator_notes ? `
+    <div class="admin-card-note" title="${escapeHtml(v.operator_notes)}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      ${escapeHtml(truncate(v.operator_notes, 80))}
+    </div>` : ''}
+  </div>
+  <svg class="icon admin-card-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+</div>
+`;
   }).join('');
 
   // Click en cards
@@ -600,6 +612,33 @@ async function openDetail(id) {
   if (deleteBtn) {
     deleteBtn.onclick = () => deleteVerification(verification.id, verification.first_name);
   }
+
+  // Notas del operador
+  const notesInput = document.getElementById('operatorNotes');
+  const notesSavedAt = document.getElementById('notesSavedAt');
+  const saveNoteBtn = document.getElementById('saveNoteBtn');
+  notesInput.value = verification.operator_notes || '';
+  notesSavedAt.textContent = verification.operator_notes_updated_at
+    ? 'Guardado: ' + formatDate(verification.operator_notes_updated_at)
+    : '';
+  saveNoteBtn.onclick = async () => {
+    const val = notesInput.value.trim();
+    saveNoteBtn.disabled = true;
+    try {
+      await supabase.from('verifications').update({
+        operator_notes: val || null,
+        operator_notes_updated_at: new Date().toISOString()
+      }).eq('id', verification.id);
+      verification.operator_notes = val || null;
+      verification.operator_notes_updated_at = new Date().toISOString();
+      notesSavedAt.textContent = 'Guardado: ' + formatDate(verification.operator_notes_updated_at);
+      showToast(val ? 'Nota guardada' : 'Nota eliminada', 'success');
+      renderList();
+    } catch (e) {
+      showToast('Error al guardar nota', 'error');
+    }
+    saveNoteBtn.disabled = false;
+  };
 
   // Cargar análisis existente
   loadExistingAnalysis(verification.id);
