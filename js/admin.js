@@ -625,7 +625,7 @@ async function openDetail(id) {
     const val = notesInput.value.trim();
     saveNoteBtn.disabled = true;
     try {
-      await supabase.from('verifications').update({
+      await supabaseClient.from('verifications').update({
         operator_notes: val || null,
         operator_notes_updated_at: new Date().toISOString()
       }).eq('id', verification.id);
