@@ -258,15 +258,14 @@ function renderList() {
           <span>DNI: ${escapeHtml(v.dni)}</span>
           <span>${escapeHtml(formatDate(v.created_at))}</span>
         </div>
+        ${v.operator_notes ? `
+        <div class="admin-card-note" title="${escapeHtml(v.operator_notes)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          ${escapeHtml(truncate(v.operator_notes, 80))}
+        </div>` : ''}
+      </div>
+      <svg class="icon admin-card-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
     </div>
-    ${v.operator_notes ? `
-    <div class="admin-card-note" title="${escapeHtml(v.operator_notes)}">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      ${escapeHtml(truncate(v.operator_notes, 80))}
-    </div>` : ''}
-  </div>
-  <svg class="icon admin-card-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
-</div>
 `;
   }).join('');
 
