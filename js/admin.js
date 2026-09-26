@@ -495,6 +495,7 @@ async function openDetail(id) {
   if (!verification) return;
 
   currentDetailId = id;
+  setAnalysisLoading(false);
 
   // Reset tabs to first
   document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
@@ -1038,10 +1039,20 @@ async function loadExistingAnalysis(verificationId) {
   }
 }
 
+function setAnalysisLoading(on) {
+  const el = document.getElementById('analysisLoading');
+  if (el) el.classList.toggle('hidden', !on);
+  if (on) {
+    const t = document.getElementById('analysisLoadingTimer');
+    if (t) t.textContent = 'El agente está evaluando las imágenes';
+  }
+}
+
 async function runAnalysis(verificationId) {
   const analyzeBtn = document.getElementById('analyzeBtn');
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = 'Analizando...';
+  setAnalysisLoading(true);
 
   try {
     const response = await fetch('https://bot.anexaria.com/webhook/verify', {
@@ -1056,10 +1067,13 @@ async function runAnalysis(verificationId) {
 
     // Poll for results — n8n takes time to save to Supabase
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 30;
     const pollInterval = 2000;
 
     const poll = async () => {
+      const timerEl = document.getElementById('analysisLoadingTimer');
+      if (timerEl) timerEl.textContent = `El agente está evaluando las imágenes (${attempts * pollInterval / 1000}s)`;
+
       const { data } = await supabaseClient
         .from('verification_analysis')
         .select('overall_score')
@@ -1067,6 +1081,7 @@ async function runAnalysis(verificationId) {
         .single();
 
       if (data && data.overall_score != null) {
+        setAnalysisLoading(false);
         await loadExistingAnalysis(verificationId);
         showToast('Análisis completado', 'success');
         analyzeBtn.disabled = false;
@@ -1078,6 +1093,7 @@ async function runAnalysis(verificationId) {
       if (attempts < maxAttempts) {
         setTimeout(poll, pollInterval);
       } else {
+        setAnalysisLoading(false);
         showToast('Análisis tardó demasiado. Refrescá la página.', 'error');
         analyzeBtn.disabled = false;
         analyzeBtn.textContent = 'Verificar con Agente';
@@ -1087,6 +1103,7 @@ async function runAnalysis(verificationId) {
     setTimeout(poll, pollInterval);
   } catch (err) {
     console.error('Analysis error:', err);
+    setAnalysisLoading(false);
     showToast('Error al analizar', 'error');
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = 'Verificar con Agente';
