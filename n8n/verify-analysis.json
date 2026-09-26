@@ -1,127 +1,224 @@
 {
-  "id": "verify-document-analysis",
   "name": "Verify - Análisis Forense AI v5",
-  "active": false,
   "nodes": [
     {
-      "id": "webhook-trigger",
-      "name": "Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [240, 300],
-      "webhookId": "verify-analysis",
       "parameters": {
         "httpMethod": "POST",
         "path": "verify",
         "responseMode": "responseNode",
         "options": {}
-      }
+      },
+      "id": "f708d1a2-eea3-4077-bdaa-17d84eb9433a",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        17232,
+        7072
+      ],
+      "webhookId": "verify-analysis"
     },
     {
-      "id": "get-verification",
+      "parameters": {
+        "jsCode": "const verificationId = $input.first().json.body.verification_id;\n\nconst data = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications?id=eq.' + verificationId + '&select=*',\n  headers: {\n    'apikey': 'PEGAR_ANON_KEY',\n    'Authorization': 'Bearer PEGAR_SERVICE_KEY'\n  },\n  json: true\n});\n\nif (!data || data.length === 0) {\n  throw new Error('Verification not found');\n}\n\nreturn [{ json: data[0] }];"
+      },
+      "id": "726daf6d-0ecc-4b02-9a8c-f84968b546d5",
       "name": "Get Verification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "const verificationId = $input.first().json.body.verification_id;\n\nconst data = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verifications?id=eq.' + verificationId + '&select=*',\n  headers: {\n    'apikey': 'PEGAR_ANON_KEY',\n    'Authorization': 'Bearer PEGAR_SERVICE_KEY'\n  },\n  json: true\n});\n\nif (!data || data.length === 0) {\n  throw new Error('Verification not found');\n}\n\nreturn [{ json: data[0] }];"
-      }
+      "position": [
+        17456,
+        7072
+      ]
     },
     {
-      "id": "analyze-openai",
-      "name": "Analyze with OpenAI",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [680, 300],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'system', content: 'Sos un especialista en evaluación de calidad de imágenes de documentos y tarjetas de pago. Tu tarea es analizar la consistencia visual y calidad de las imágenes proporcionadas.\\n\\nEnfoque del análisis:\\nAdoptá una postura minuciosa y detallista. Tu objetivo es evaluar la coherencia visual y calidad de cada elemento visible en las imágenes.\\n\\nSi no podés determinar algo con certeza debido a la calidad de la imagen, indicá la incertidumbre en los findings.\\nNunca inventes detalles que no puedas observar claramente en la imagen.\\n\\nAspectos a evaluar en cada imagen de documento:\\n- Consistencia de tipografía (fuentes, tamaños, espaciado)\\n- Alineación y centramiento de elementos\\n- Calidad y uniformidad de la imagen\\n- Coherencia entre diferentes zonas del documento\\n- Estado general del documento\\n\\nPara la imagen de tarjeta:\\n- Coherencia visual de todos los elementos\\n- Tipografía y posicionamiento\\n- Si la imagen parece una captura real de un objeto físico o una representación digital\\n\\nTODA la respuesta debe ser en ESPAÑOL. Retorná UNICAMENTE un JSON válido sin texto adicional.' }, { role: 'user', content: [{ type: 'text', text: 'Realizá una evaluación de calidad y consistencia visual de estas imágenes. Compará los datos visibles en las imágenes con los datos de referencia del operador.\\n\\nDATOS DE REFERENCIA:\\n- Nombre: ' + $json.first_name + ' ' + $json.last_name + '\\n- DNI: ' + $json.dni + '\\n- Últimos 4 de tarjeta: ' + ($json.card_last_four || 'No proporcionado') + '\\n\\nPara el documento de identidad, examiná independientemente:\\n1. Fotografía del titular\\n2. Nombre completo visible\\n3. Número de documento\\n4. Fecha de nacimiento\\n5. Fechas de emisión/vencimiento\\n6. Firma\\n7. Código MRZ (zona máquina)\\n8. Código de barras\\n9. Fondo y elementos decorativos\\n10. Tipografía y diseño general\\n\\nCompará el frente y el dorso del documento. Verificá la consistencia visual entre ambas caras: tipografía, escala, colorimetría, nitidez y elementos de diseño.\\n\\nPara la tarjeta, verificá:\\n- Número visible y últimos 4 dígitos\\n- Nombre del titular\\n- Fecha de vencimiento\\n- Logos (entidad, red de pago)\\n- Chip y elementos físicos\\n- Tipografía, espaciado y alineación\\n- Si la imagen parece una foto del plástico real o una representación digital/mockup\\n\\nDebés retornar UN JSON con esta estructura exacta:\\n{\\n  \"extracted_data\": { \"full_name\": \"nombre completo del DNI\", \"dni_number\": \"número del DNI\", \"birth_date\": \"fecha de nacimiento\" },\\n  \"dni_front\": { \"score\": 0-100, \"findings\": [\"hallazgo 1\", \"hallazgo 2\"] },\\n  \"dni_back\": { \"score\": 0-100, \"findings\": [\"hallazgo 1\", \"hallazgo 2\"] },\\n  \"card_photo\": { \"score\": 0-100, \"findings\": [\"hallazgo 1\", \"hallazgo 2\"], \"last_four_visible\": \"últimos 4 dígitos visibles\", \"cardholder_name\": \"nombre en la tarjeta\", \"is_editable\": true/false, \"editable_details\": [\"qué parece inusual o sospechoso\"] },\\n  \"overall_score\": 0-100,\\n  \"indicators\": [{ \"type\": \"nombre_indicador\", \"severity\": \"high/medium/low\", \"confidence\": 0-100, \"location\": \"dónde se detectó\", \"description\": \"descripción en español\" }],\\n  \"data_match\": { \"name_match\": true/false, \"dni_match\": true/false, \"card_match\": true/false },\\n  \"data_consistency\": { \"front_back_match\": true/false, \"text_readable\": true/false, \"document_intact\": true/false },\\n  \"recommendation\": \"low_risk/medium_risk/high_risk/manual_review\",\\n  \"summary\": [\"oración 1 resumiendo el análisis\", \"oración 2\", \"oración 3\"]\\n}\\n\\nIMPORTANTE:\\n- TODOS los textos (findings, indicators.description, summary) deben estar en ESPAÑOL\\n- El campo summary debe contener 2-4 oraciones que resuman los hallazgos principales\\n- overall_score es un puntaje de confianza: 100 = alta confianza en autenticidad, 0 = baja confianza\\n- Si existen elementos inusuales pero no se puede determinar con certeza si son legítimos o no, utilizá recommendation: manual_review\\n- Si overall_score < 70, la recomendación no debería ser low_risk\\n- Si la tarjeta parece una representación digital o imagen generada, is_editable debe ser true\\n- indicators debe incluir cualquier hallazgo que merezca atención, con severity según la importancia' }], max_tokens: 1500 }] }) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer PEGAR_OPENAI_KEY" }
+            {
+              "name": "Authorization",
+              "value": "Bearer PEGAR_OPENAI_KEY"
+            }
           ]
         },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-5.6-luna', messages: [{ role: 'system', content: 'Sos un especialista en evaluación de calidad de imágenes de documentos y tarjetas de pago. Tu tarea es analizar la consistencia visual y calidad de las imágenes proporcionadas.\\n\\nEnfoque del análisis:\\nAdoptá una postura minuciosa y detallista. Tu objetivo es evaluar la coherencia visual y calidad de cada elemento visible en las imágenes.\\n\\nSi no podés determinar algo con certeza debido a la calidad de la imagen, indicá la incertidumbre en los findings.\\nNunca inventes detalles que no puedas observar claramente en la imagen.\\n\\nAspectos a evaluar en cada imagen de documento:\\n- Consistencia de tipografía (fuentes, tamaños, espaciado)\\n- Alineación y centramiento de elementos\\n- Calidad y uniformidad de la imagen\\n- Coherencia entre diferentes zonas del documento\\n- Estado general del documento\\n\\nPara la imagen de tarjeta:\\n- Coherencia visual de todos los elementos\\n- Tipografía y posicionamiento\\n- Si la imagen parece una captura real de un objeto físico o una representación digital\\n\\nTODA la respuesta debe ser en ESPAÑOL. Retorná UNICAMENTE un JSON válido sin texto adicional.' }, { role: 'user', content: [{ type: 'text', text: 'Realizá una evaluación de calidad y consistencia visual de estas imágenes. Compará los datos visibles en las imágenes con los datos de referencia del operador.\\n\\nDATOS DE REFERENCIA:\\n- Nombre: ' + $json.first_name + ' ' + $json.last_name + '\\n- DNI: ' + $json.dni + '\\n- Últimos 4 de tarjeta: ' + ($json.card_last_four || 'No proporcionado') + '\\n\\nPara el documento de identidad, examiná independientemente:\\n1. Fotografía del titular\\n2. Nombre completo visible\\n3. Número de documento\\n4. Fecha de nacimiento\\n5. Fechas de emisión/vencimiento\\n6. Firma\\n7. Código MRZ (zona máquina)\\n8. Código de barras\\n9. Fondo y elementos decorativos\\n10. Tipografía y diseño general\\n\\nCompará el frente y el dorso del documento. Verificá la consistencia visual entre ambas caras: tipografía, escala, colorimetría, nitidez y elementos de diseño.\\n\\nPara la tarjeta, verificá:\\n- Número visible y últimos 4 dígitos\\n- Nombre del titular\\n- Fecha de vencimiento\\n- Logos (entidad, red de pago)\\n- Chip y elementos físicos\\n- Tipografía, espaciado y alineación\\n- Si la imagen parece una foto del plástico real o una representación digital/mockup\\n\\nDebés retornar UN JSON con esta estructura exacta:\\n{\\n  \"extracted_data\": { \"full_name\": \"nombre completo del DNI\", \"dni_number\": \"número del DNI\", \"birth_date\": \"fecha de nacimiento\" },\\n  \"dni_front\": { \"score\": 0-100, \"findings\": [\"hallazgo 1\", \"hallazgo 2\"] },\\n  \"dni_back\": { \"score\": 0-100, \"findings\": [\"hallazgo 1\", \"hallazgo 2\"] },\\n  \"card_photo\": { \"score\": 0-100, \"findings\": [\"hallazgo 1\", \"hallazgo 2\"], \"last_four_visible\": \"últimos 4 dígitos visibles\", \"cardholder_name\": \"nombre en la tarjeta\", \"is_editable\": true/false, \"editable_details\": [\"qué parece inusual o sospechoso\"] },\\n  \"overall_score\": 0-100,\\n  \"indicators\": [{ \"type\": \"nombre_indicador\", \"severity\": \"high/medium/low\", \"confidence\": 0-100, \"location\": \"dónde se detectó\", \"description\": \"descripción en español\" }],\\n  \"data_match\": { \"name_match\": true/false, \"dni_match\": true/false, \"card_match\": true/false },\\n  \"data_consistency\": { \"front_back_match\": true/false, \"text_readable\": true/false, \"document_intact\": true/false },\\n  \"recommendation\": \"low_risk/medium_risk/high_risk/manual_review\",\\n  \"summary\": [\"oración 1 resumiendo el análisis\", \"oración 2\", \"oración 3\"]\\n}\\n\\nIMPORTANTE:\\n- TODOS los textos (findings, indicators.description, summary) deben estar en ESPAÑOL\\n- El campo summary debe contener 2-4 oraciones que resuman los hallazgos principales\\n- overall_score es un puntaje de confianza: 100 = alta confianza en autenticidad, 0 = baja confianza\\n- Si existen elementos inusuales pero no se puede determinar con certeza si son legítimos o no, utilizá recommendation: manual_review\\n- Si overall_score < 70, la recomendación no debería ser low_risk\\n- Si la tarjeta parece una representación digital o imagen generada, is_editable debe ser true\\n- indicators debe incluir cualquier hallazgo que merezca atención, con severity según la importancia' }], max_tokens: 1500 }] }) }}",
         "options": {}
-      }
+      },
+      "id": "386f7073-ecd2-4d49-b2eb-279c365d37e6",
+      "name": "Analyze with OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        17680,
+        7072
+      ]
     },
     {
-      "id": "parse-response",
+      "parameters": {
+        "jsCode": "const openaiResponse = $input.first().json;\nconst v = $('Get Verification').item.json;\n\ntry {\n  let content = openaiResponse.choices[0].message.content;\n\n  const refusalPrefixes = ['Lo siento', 'Lo lamento', 'I cannot', 'I\\'m sorry', 'No puedo', 'No es posible'];\n  if (!content || refusalPrefixes.some(p => content.trim().startsWith(p))) {\n    throw new Error('OpenAI refused to analyze: ' + (content || '').substring(0, 100));\n  }\n\n  content = content.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  const parsed = JSON.parse(content);\n\n  const extractedName = (parsed.extracted_data?.full_name || '').toLowerCase().trim();\n  const operatorName = (v.first_name + ' ' + v.last_name).toLowerCase().trim();\n  const nameMatch = extractedName.includes(operatorName) || operatorName.includes(extractedName);\n\n  const extractedDni = (parsed.extracted_data?.dni_number || '').replace(/[^0-9]/g, '');\n  const operatorDni = (v.dni || '').replace(/[^0-9]/g, '');\n  const dniMatch = extractedDni === operatorDni;\n\n  const cardLastFour = (v.card_last_four || '').replace(/[^0-9]/g, '');\n  const extractedLastFour = (parsed.card_photo?.last_four_visible || '').replace(/[^0-9]/g, '');\n  const cardMatch = cardLastFour && extractedLastFour ? cardLastFour === extractedLastFour : false;\n\n  const overallScore = parsed.overall_score ?? 0;\n  let recommendation = parsed.recommendation || 'low_risk';\n  const indicators = Array.isArray(parsed.indicators) ? parsed.indicators : (Array.isArray(parsed.fraud_signals) ? parsed.fraud_signals : []);\n  const isEditable = parsed.card_photo?.is_editable === true;\n\n  if (isEditable && recommendation !== 'high_risk') {\n    const hasHighSeverity = indicators.some(s => s.severity === 'high' && (s.confidence || 0) >= 70);\n    const lowScore = overallScore < 70;\n    if (hasHighSeverity || lowScore) {\n      recommendation = 'high_risk';\n    } else if (recommendation === 'low_risk') {\n      recommendation = 'manual_review';\n    }\n  }\n\n  const highSeverityIndicators = indicators.filter(s => s.severity === 'high' && (s.confidence || 0) >= 70);\n  if (highSeverityIndicators.length > 0 && recommendation !== 'high_risk') {\n    recommendation = 'high_risk';\n  }\n\n  if (overallScore < 50 && recommendation !== 'high_risk') {\n    recommendation = 'high_risk';\n  }\n\n  if (overallScore < 70 && recommendation === 'low_risk') {\n    recommendation = 'manual_review';\n  }\n\n  if (!nameMatch || !dniMatch) {\n    if (recommendation === 'low_risk') recommendation = 'medium_risk';\n  }\n\n  return [{\n    json: {\n      verification_id: v.id,\n      extracted_name: parsed.extracted_data?.full_name || '',\n      extracted_dni: parsed.extracted_data?.dni_number || '',\n      extracted_birth_date: parsed.extracted_data?.birth_date || '',\n      dni_front_score: parsed.dni_front?.score || 0,\n      dni_back_score: parsed.dni_back?.score || 0,\n      dni_front_findings: parsed.dni_front?.findings || [],\n      dni_back_findings: parsed.dni_back?.findings || [],\n      card_photo_score: parsed.card_photo?.score || 0,\n      card_photo_findings: parsed.card_photo?.findings || [],\n      overall_score: overallScore,\n      fraud_signals: indicators,\n      data_match: {\n        name_match: nameMatch,\n        dni_match: dniMatch,\n        card_match: cardMatch,\n      },\n      data_consistency: parsed.data_consistency || {},\n      summary: parsed.summary || [],\n      recommendation: recommendation,\n      raw_response: openaiResponse,\n      analyzed_at: new Date().toISOString(),\n      analyzed_by: 'openai-gpt4o-forensic-v4'\n    }\n  }];\n} catch (err) {\n  const errorMsg = err.message || '';\n  if (errorMsg.includes('refused') || errorMsg.includes('Lo siento') || errorMsg.includes('Lo lamento') || errorMsg.includes('No puede') || errorMsg.includes('parse')) {\n    return [{\n      json: {\n        verification_id: v.id,\n        extracted_name: '',\n        extracted_dni: '',\n        extracted_birth_date: '',\n        dni_front_score: 0,\n        dni_back_score: 0,\n        dni_front_findings: ['El modelo de análisis no pudo procesar las imágenes'],\n        dni_back_findings: [],\n        card_photo_score: 0,\n        card_photo_findings: [],\n        overall_score: 0,\n        fraud_signals: [{ signal: 'analysis_unavailable', severity: 'medium', confidence: 100, location: 'sistema', description: 'El modelo de análisis no pudo procesar las imágenes. Se requiere revisión manual.' }],\n        data_match: { name_match: false, dni_match: false, card_match: false },\n        data_consistency: {},\n        summary: ['El análisis automático no pudo completarse. Se requiere revisión manual.'],\n        recommendation: 'manual_review',\n        raw_response: openaiResponse,\n        analyzed_at: new Date().toISOString(),\n        analyzed_by: 'openai-gpt4o-forensic-v4'\n      }\n    }];\n  }\n  throw new Error('Failed to parse OpenAI response: ' + err.message);\n}"
+      },
+      "id": "3419ae45-ad7e-4cd1-a510-8a28df345bbf",
       "name": "Parse Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "const openaiResponse = $input.first().json;\nconst v = $('Get Verification').item.json;\n\ntry {\n  let content = openaiResponse.choices[0].message.content;\n\n  const refusalPrefixes = ['Lo siento', 'Lo lamento', 'I cannot', 'I\\'m sorry', 'No puedo', 'No es posible'];\n  if (!content || refusalPrefixes.some(p => content.trim().startsWith(p))) {\n    throw new Error('OpenAI refused to analyze: ' + (content || '').substring(0, 100));\n  }\n\n  content = content.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  const parsed = JSON.parse(content);\n\n  const extractedName = (parsed.extracted_data?.full_name || '').toLowerCase().trim();\n  const operatorName = (v.first_name + ' ' + v.last_name).toLowerCase().trim();\n  const nameMatch = extractedName.includes(operatorName) || operatorName.includes(extractedName);\n\n  const extractedDni = (parsed.extracted_data?.dni_number || '').replace(/[^0-9]/g, '');\n  const operatorDni = (v.dni || '').replace(/[^0-9]/g, '');\n  const dniMatch = extractedDni === operatorDni;\n\n  const cardLastFour = (v.card_last_four || '').replace(/[^0-9]/g, '');\n  const extractedLastFour = (parsed.card_photo?.last_four_visible || '').replace(/[^0-9]/g, '');\n  const cardMatch = cardLastFour && extractedLastFour ? cardLastFour === extractedLastFour : false;\n\n  const overallScore = parsed.overall_score ?? 0;\n  let recommendation = parsed.recommendation || 'low_risk';\n  const indicators = Array.isArray(parsed.indicators) ? parsed.indicators : (Array.isArray(parsed.fraud_signals) ? parsed.fraud_signals : []);\n  const isEditable = parsed.card_photo?.is_editable === true;\n\n  if (isEditable && recommendation !== 'high_risk') {\n    const hasHighSeverity = indicators.some(s => s.severity === 'high' && (s.confidence || 0) >= 70);\n    const lowScore = overallScore < 70;\n    if (hasHighSeverity || lowScore) {\n      recommendation = 'high_risk';\n    } else if (recommendation === 'low_risk') {\n      recommendation = 'manual_review';\n    }\n  }\n\n  const highSeverityIndicators = indicators.filter(s => s.severity === 'high' && (s.confidence || 0) >= 70);\n  if (highSeverityIndicators.length > 0 && recommendation !== 'high_risk') {\n    recommendation = 'high_risk';\n  }\n\n  if (overallScore < 50 && recommendation !== 'high_risk') {\n    recommendation = 'high_risk';\n  }\n\n  if (overallScore < 70 && recommendation === 'low_risk') {\n    recommendation = 'manual_review';\n  }\n\n  if (!nameMatch || !dniMatch) {\n    if (recommendation === 'low_risk') recommendation = 'medium_risk';\n  }\n\n  return [{\n    json: {\n      verification_id: v.id,\n      extracted_name: parsed.extracted_data?.full_name || '',\n      extracted_dni: parsed.extracted_data?.dni_number || '',\n      extracted_birth_date: parsed.extracted_data?.birth_date || '',\n      dni_front_score: parsed.dni_front?.score || 0,\n      dni_back_score: parsed.dni_back?.score || 0,\n      dni_front_findings: parsed.dni_front?.findings || [],\n      dni_back_findings: parsed.dni_back?.findings || [],\n      card_photo_score: parsed.card_photo?.score || 0,\n      card_photo_findings: parsed.card_photo?.findings || [],\n      overall_score: overallScore,\n      fraud_signals: indicators,\n      data_match: {\n        name_match: nameMatch,\n        dni_match: dniMatch,\n        card_match: cardMatch,\n      },\n      data_consistency: parsed.data_consistency || {},\n      summary: parsed.summary || [],\n      recommendation: recommendation,\n      raw_response: openaiResponse,\n      analyzed_at: new Date().toISOString(),\n      analyzed_by: 'openai-gpt4o-forensic-v4'\n    }\n  }];\n} catch (err) {\n  const errorMsg = err.message || '';\n  if (errorMsg.includes('refused') || errorMsg.includes('Lo siento') || errorMsg.includes('Lo lamento') || errorMsg.includes('No puede') || errorMsg.includes('parse')) {\n    return [{\n      json: {\n        verification_id: v.id,\n        extracted_name: '',\n        extracted_dni: '',\n        extracted_birth_date: '',\n        dni_front_score: 0,\n        dni_back_score: 0,\n        dni_front_findings: ['El modelo de análisis no pudo procesar las imágenes'],\n        dni_back_findings: [],\n        card_photo_score: 0,\n        card_photo_findings: [],\n        overall_score: 0,\n        fraud_signals: [{ signal: 'analysis_unavailable', severity: 'medium', confidence: 100, location: 'sistema', description: 'El modelo de análisis no pudo procesar las imágenes. Se requiere revisión manual.' }],\n        data_match: { name_match: false, dni_match: false, card_match: false },\n        data_consistency: {},\n        summary: ['El análisis automático no pudo completarse. Se requiere revisión manual.'],\n        recommendation: 'manual_review',\n        raw_response: openaiResponse,\n        analyzed_at: new Date().toISOString(),\n        analyzed_by: 'openai-gpt4o-forensic-v4'\n      }\n    }];\n  }\n  throw new Error('Failed to parse OpenAI response: ' + err.message);\n}"
-      }
+      "position": [
+        17904,
+        7072
+      ]
     },
     {
-      "id": "save-results",
-      "name": "Save Results",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1120, 300],
       "parameters": {
         "method": "POST",
         "url": "=https://ceogbuepvunwyavltcgu.supabase.co/rest/v1/verification_analysis",
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ verification_id: $json.verification_id, extracted_name: $json.extracted_name, extracted_dni: $json.extracted_dni, extracted_birth_date: $json.extracted_birth_date, dni_front_score: $json.dni_front_score, dni_back_score: $json.dni_back_score, dni_front_findings: $json.dni_front_findings, dni_back_findings: $json.dni_back_findings, card_photo_score: $json.card_photo_score, card_photo_findings: $json.card_photo_findings, overall_score: $json.overall_score, fraud_signals: $json.fraud_signals, data_match: $json.data_match, data_consistency: $json.data_consistency, summary: $json.summary, recommendation: $json.recommendation, raw_response: $json.raw_response, analyzed_at: $json.analyzed_at, analyzed_by: $json.analyzed_by }) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "PEGAR_ANON_KEY" },
-            { "name": "Authorization", "value": "Bearer PEGAR_SERVICE_KEY" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "resolution=merge-duplicates,return=representation" }
+            {
+              "name": "apikey",
+              "value": "PEGAR_ANON_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer PEGAR_SERVICE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
           ]
         },
-        "options": { "alwaysOutputData": true }
-      }
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ verification_id: $json.verification_id, extracted_name: $json.extracted_name, extracted_dni: $json.extracted_dni, extracted_birth_date: $json.extracted_birth_date, dni_front_score: $json.dni_front_score, dni_back_score: $json.dni_back_score, dni_front_findings: $json.dni_front_findings, dni_back_findings: $json.dni_back_findings, card_photo_score: $json.card_photo_score, card_photo_findings: $json.card_photo_findings, overall_score: $json.overall_score, fraud_signals: $json.fraud_signals, data_match: $json.data_match, data_consistency: $json.data_consistency, summary: $json.summary, recommendation: $json.recommendation, raw_response: $json.raw_response, analyzed_at: $json.analyzed_at, analyzed_by: $json.analyzed_by }) }}",
+        "options": {}
+      },
+      "id": "2cea0b72-6478-4be5-be92-ddf84526c75a",
+      "name": "Save Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        18112,
+        7072
+      ]
     },
     {
-      "id": "respond-webhook",
-      "name": "Respond",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1340, 300],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ success: true, verification_id: $json.verification_id, analysis: { overall_score: $json.overall_score, dni_front_score: $json.dni_front_score, dni_back_score: $json.dni_back_score, dni_front_findings: $json.dni_front_findings, dni_back_findings: $json.dni_back_findings, card_photo_score: $json.card_photo_score, card_photo_findings: $json.card_photo_findings, recommendation: $json.recommendation, fraud_signals: $json.fraud_signals, data_match: $json.data_match, data_consistency: $json.data_consistency, summary: $json.summary, extracted_data: { name: $json.extracted_name, dni: $json.extracted_dni, birth_date: $json.extracted_birth_date } } }) }}",
-        "options": { "responseCode": 200 }
-      }
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7b33db2b-6972-4867-b05f-6f35d87515c3",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        18336,
+        7072
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Webhook": {
-      "main": [[{ "node": "Get Verification", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Verification": {
-      "main": [[{ "node": "Analyze with OpenAI", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Analyze with OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Analyze with OpenAI": {
-      "main": [[{ "node": "Parse Response", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Response": {
-      "main": [[{ "node": "Save Results", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Save Results": {
-      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" },
-  "staticData": null,
-  "pinData": {},
-  "versionId": "6",
-  "meta": { "templateCredsSetupCompleted": false },
-  "tags": []
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "818e4204-5410-4270-9617-787ee449b1aa",
+  "meta": {
+    "instanceId": "0a30862333756e6b4d6ff646ffb25b8463b99fd125d14b22e6e4963e2c1eb17c"
+  },
+  "nodeGroups": [],
+  "id": "7DEa2zVR86gpAqIT",
+  "tags": [
+    {
+      "updatedAt": "2026-07-11T14:57:25.908Z",
+      "createdAt": "2026-07-11T14:57:25.908Z",
+      "id": "UkDSJWOi0VKzEBkm",
+      "name": "VTEX"
+    },
+    {
+      "updatedAt": "2026-07-11T14:57:25.925Z",
+      "createdAt": "2026-07-11T14:57:25.925Z",
+      "id": "vIIwjAHOTO2ppX48",
+      "name": "Products"
+    },
+    {
+      "updatedAt": "2026-07-11T14:57:25.922Z",
+      "createdAt": "2026-07-11T14:57:25.922Z",
+      "id": "w3xXDtuA7drNVs0x",
+      "name": "AI Agent"
+    }
+  ]
 }
