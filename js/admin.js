@@ -1054,6 +1054,15 @@ async function runAnalysis(verificationId) {
   analyzeBtn.textContent = 'Analizando...';
   setAnalysisLoading(true);
 
+  // Timestamp del análisis previo (si existe): evita confundir la fila vieja con la nueva
+  let prevAnalyzedAt = null;
+  const { data: prev } = await supabaseClient
+    .from('verification_analysis')
+    .select('analyzed_at')
+    .eq('verification_id', verificationId)
+    .maybeSingle();
+  if (prev) prevAnalyzedAt = prev.analyzed_at;
+
   try {
     const response = await fetch('https://bot.anexaria.com/webhook/verify', {
       method: 'POST',
@@ -1076,11 +1085,13 @@ async function runAnalysis(verificationId) {
 
       const { data } = await supabaseClient
         .from('verification_analysis')
-        .select('overall_score')
+        .select('overall_score,analyzed_at')
         .eq('verification_id', verificationId)
         .single();
 
-      if (data && data.overall_score != null) {
+      if (data && data.overall_score != null && data.analyzed_at !== prevAnalyzedAt) {
+
+      if (data && data.overall_score != null && data.analyzed_at !== prevAnalyzedAt) {
         setAnalysisLoading(false);
         await loadExistingAnalysis(verificationId);
         showToast('Análisis completado', 'success');
