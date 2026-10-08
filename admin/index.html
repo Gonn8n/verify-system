@@ -381,24 +381,28 @@
           <div class="detail-media-preview" id="detailDniFront">
             <div class="detail-media-placeholder">No subido</div>
           </div>
+          <label class="btn btn-secondary btn-sm media-upload-btn">Subir / reemplazar<input type="file" class="hidden admin-file-input" data-slot="dniFront" accept="image/*"></label>
         </div>
         <div class="detail-media">
           <div class="detail-media-label">DNI Dorso</div>
           <div class="detail-media-preview" id="detailDniBack">
             <div class="detail-media-placeholder">No subido</div>
           </div>
+          <label class="btn btn-secondary btn-sm media-upload-btn">Subir / reemplazar<input type="file" class="hidden admin-file-input" data-slot="dniBack" accept="image/*"></label>
         </div>
         <div class="detail-media">
           <div class="detail-media-label">Prueba de Vida</div>
           <div class="detail-media-preview" id="detailVideo">
             <div class="detail-media-placeholder">No subido</div>
           </div>
+          <label class="btn btn-secondary btn-sm media-upload-btn">Subir / reemplazar<input type="file" class="hidden admin-file-input" data-slot="lifeProofVideo" accept="video/*"></label>
         </div>
         <div class="detail-media">
           <div class="detail-media-label">Foto Tarjeta</div>
           <div class="detail-media-preview" id="detailCardPhoto">
             <div class="detail-media-placeholder">No subido</div>
           </div>
+          <label class="btn btn-secondary btn-sm media-upload-btn">Subir / reemplazar<input type="file" class="hidden admin-file-input" data-slot="cardPhoto" accept="image/*"></label>
         </div>
       </div>
       
@@ -495,6 +499,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/admin.js"></script>
 </body>

@@ -506,8 +506,30 @@ async function requestPermissions() {
 // UPLOAD HELPERS
 // ============================================
 
-async function uploadFile(file, path) {
+// Convierte HEIC/HEIF (fotos de iPhone) a JPEG antes de subir.
+// Sin esto, el navegador del operador y el agente de IA no pueden leerlas.
+async function normalizeImage(file) {
+  const name = (file.name || '').toLowerCase();
+  const type = (file.type || '').toLowerCase();
+  const isHeic = type === 'image/heic' || type === 'image/heif' ||
+    name.endsWith('.heic') || name.endsWith('.heif');
+  if (!isHeic) return file;
   try {
+    if (typeof heic2any === 'undefined') {
+      console.warn('heic2any no disponible, se sube el original');
+      return file;
+    }
+    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const out = Array.isArray(blob) ? blob[0] : blob;
+    const baseName = name.replace(/\.(heic|heif)$/, '') || 'foto';
+    return new File([out], baseName + '.jpg', { type: 'image/jpeg' });
+  } catch (err) {
+    console.error('Error convirtiendo HEIC:', err);
+    return file;
+  }
+}
+
+async function uploadFile(file, path) {  try {
     const { data, error } = await supabaseClient.storage
       .from(SUPABASE_CONFIG.storageBucket)
       .upload(path, file, {
@@ -534,6 +556,11 @@ async function uploadFile(file, path) {
 async function uploadSingleFile(fileKey, storagePath) {
   const code = verificationData.unique_code;
   if (!files[fileKey] || uploaded[fileKey]) return true;
+
+  // Normalizar HEIC de iPhone a JPEG (solo slots de imagen)
+  if (fileKey !== 'lifeProofVideo' && files[fileKey]) {
+    files[fileKey] = await normalizeImage(files[fileKey]);
+  }
 
   const url = await uploadFile(files[fileKey], `${code}/${storagePath}`);
   if (!url) return false;

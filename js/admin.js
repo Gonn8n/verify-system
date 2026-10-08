@@ -183,6 +183,83 @@ searchClear.addEventListener('click', () => {
 });
 
 // ============================================
+// SUBIR / REEMPLAZAR ARCHIVOS (OPERADOR)
+// ============================================
+
+const ADMIN_SLOTS = {
+  dniFront: { column: 'dni_front_url', storage: 'dni-front.jpg', container: 'detailDniFront', type: 'image' },
+  dniBack: { column: 'dni_back_url', storage: 'dni-back.jpg', container: 'detailDniBack', type: 'image' },
+  lifeProofVideo: { column: 'life_proof_video_url', storage: 'life-proof.webm', container: 'detailVideo', type: 'video' },
+  cardPhoto: { column: 'card_photo_url', storage: 'card-photo.jpg', container: 'detailCardPhoto', type: 'image' }
+};
+
+// Convierte HEIC/HEIF (fotos de iPhone) a JPEG antes de subir.
+async function normalizeAdminImage(file) {
+  const name = (file.name || '').toLowerCase();
+  const type = (file.type || '').toLowerCase();
+  const isHeic = type === 'image/heic' || type === 'image/heif' ||
+    name.endsWith('.heic') || name.endsWith('.heif');
+  if (!isHeic) return file;
+  try {
+    if (typeof heic2any === 'undefined') return file;
+    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const out = Array.isArray(blob) ? blob[0] : blob;
+    const baseName = name.replace(/\.(heic|heif)$/, '') || 'foto';
+    return new File([out], baseName + '.jpg', { type: 'image/jpeg' });
+  } catch (err) {
+    console.error('Error convirtiendo HEIC:', err);
+    return file;
+  }
+}
+
+async function uploadAdminFile(slot, file) {
+  const cfg = ADMIN_SLOTS[slot];
+  const verification = allVerifications.find(v => v.id === currentDetailId);
+  if (!cfg || !verification || !file) return;
+
+  showToast('Subiendo archivo...', 'info');
+  try {
+    let upload = file;
+    if (cfg.type === 'image') upload = await normalizeAdminImage(file);
+
+    const path = `${verification.unique_code}/${cfg.storage}`;
+    const { error } = await supabaseClient.storage
+      .from('verification-files')
+      .upload(path, upload, {
+        contentType: upload.type || file.type || 'application/octet-stream',
+        upsert: true
+      });
+    if (error) throw error;
+
+    const { data } = supabaseClient.storage
+      .from('verification-files')
+      .getPublicUrl(path);
+
+    const { error: dbError } = await supabaseClient
+      .from('verifications')
+      .update({ [cfg.column]: data.publicUrl })
+      .eq('id', verification.id);
+    if (dbError) throw dbError;
+
+    verification[cfg.column] = data.publicUrl;
+    renderMedia(cfg.container, data.publicUrl + '?t=' + Date.now(), cfg.type);
+    showToast('Archivo actualizado', 'success');
+  } catch (err) {
+    console.error('Admin upload error:', err);
+    showToast('Error al subir archivo', 'error');
+  }
+}
+
+document.querySelectorAll('.admin-file-input').forEach(input => {
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const slot = e.target.dataset.slot;
+    e.target.value = '';
+    if (file) await uploadAdminFile(slot, file);
+  });
+});
+
+// ============================================
 // FILTRAR + PAGINAR
 // ============================================
 
@@ -652,6 +729,15 @@ async function openDetail(id) {
   detailOverlay.classList.remove('hidden');
 }
 
+function renderMediaFallback(container, url) {
+  container.innerHTML = `
+    <div class="detail-media-placeholder">
+      <svg class="icon" aria-hidden="true"><use href="#i-id-card"/></svg>
+      <div>Formato no previsualizable</div>
+      <a class="detail-link" href="${escapeHtml(url)}" download>Descargar archivo</a>
+    </div>`;
+}
+
 function renderMedia(containerId, url, type) {
   const container = document.getElementById(containerId);
   if (!url) {
@@ -671,6 +757,7 @@ function renderMedia(containerId, url, type) {
     const video = document.createElement('video');
     video.controls = true;
     video.src = url;
+    video.addEventListener('error', () => renderMediaFallback(container, url), { once: true });
     wrapper.appendChild(video);
     container.innerHTML = '';
     container.appendChild(wrapper);
@@ -687,6 +774,7 @@ function renderMedia(containerId, url, type) {
     img.dataset.rotation = savedRotation;
     img.style.cssText = rotationStyle;
     img.addEventListener('click', () => openImageModal(url, savedRotation));
+    img.addEventListener('error', () => renderMediaFallback(container, url), { once: true });
 
     const actions = document.createElement('div');
     actions.className = 'media-actions';
