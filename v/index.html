@@ -270,6 +270,11 @@
             <span>No se pudo acceder a la cámara. Por favor, verificá los permisos del navegador.</span>
           </div>
 
+          <div id="cameraBlockedHelp" class="info-alert hidden">
+            <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>
+            <span>Si bloqueaste el permiso, el navegador no vuelve a preguntar: tocá el candado de la barra de direcciones, abrí "Permisos" o "Configuración del sitio", poné la Cámara en "Permitir" y después tocá OK.</span>
+          </div>
+
           <button class="btn btn-primary" id="okPermissionsBtn">OK</button>
         </div>
       </div>
@@ -297,6 +302,10 @@
           </div>
 
           <video id="videoPreview" class="upload-preview" controls></video>
+
+          <div class="or-divider">o</div>
+          <button class="btn btn-secondary btn-full" id="videoUploadBtn" type="button">Subir video ya grabado</button>
+          <input type="file" id="videoUploadInput" accept="video/*" capture="environment" class="hidden">
 
           <div class="nav-buttons">
             <button class="btn btn-secondary" id="backRecordBtn">VOLVER</button>

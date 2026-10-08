@@ -743,6 +743,7 @@ document.getElementById('backVideoIntroBtn')?.addEventListener('click', () => {
 
 document.getElementById('okPermissionsBtn')?.addEventListener('click', async () => {
   clearStepError(document.getElementById('permissionError'));
+  document.getElementById('cameraBlockedHelp')?.classList.add('hidden');
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       showStepError(
@@ -763,10 +764,26 @@ document.getElementById('okPermissionsBtn')?.addEventListener('click', async () 
     showStep(8);
   } catch (err) {
     console.error('Camera error:', err);
-    showStepError(
-      document.getElementById('permissionError'),
-      'No se pudo acceder a la cámara. Verificá los permisos del navegador e intentá de nuevo.'
-    );
+    const errEl = document.getElementById('permissionError');
+    if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+      // El navegador recuerda el bloqueo y no vuelve a mostrar el cartel.
+      // Solo vale reintentar si el usuario lo habilita manualmente (candado).
+      let state = '';
+      try {
+        const st = await navigator.permissions?.query({ name: 'camera' });
+        state = st?.state || '';
+      } catch { /* Permissions API no soportada */ }
+      if (state === 'denied') {
+        showStepError(errEl, 'Bloqueaste el acceso a la cámara. Habilitala desde el candado y tocá OK de nuevo.');
+      } else {
+        showStepError(errEl, 'Aceptá el permiso cuando el navegador lo pida. Si lo bloqueaste, habilitalo desde el candado y tocá OK.');
+      }
+      document.getElementById('cameraBlockedHelp')?.classList.remove('hidden');
+    } else if (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError')) {
+      showStepError(errEl, 'No se encontró ninguna cámara en este dispositivo. Probá desde tu celular.');
+    } else {
+      showStepError(errEl, 'No se pudo acceder a la cámara. Verificá los permisos del navegador e intentá de nuevo.');
+    }
   }
 });
 
@@ -832,6 +849,20 @@ stopBtn?.addEventListener('click', () => {
   recordBtn.classList.remove('recording');
   stopBtn.classList.remove('show');
   recordingIndicator.classList.remove('show');
+});
+
+// Vía alternativa sin permiso de cámara: abre la app de cámara nativa
+// y sube el video ya grabado (en iPhone llega como .mov, igual se almacena).
+const videoUploadInput = document.getElementById('videoUploadInput');
+document.getElementById('videoUploadBtn')?.addEventListener('click', () => videoUploadInput.click());
+videoUploadInput?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  files.lifeProofVideo = file;
+  clearFieldError(videoPreview);
+  videoPreview.src = URL.createObjectURL(file);
+  videoPreview.classList.add('show');
+  stopCamera();
 });
 
 function stopCamera() {
