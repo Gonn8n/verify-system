@@ -851,20 +851,6 @@ stopBtn?.addEventListener('click', () => {
   recordingIndicator.classList.remove('show');
 });
 
-// Vía alternativa sin permiso de cámara: abre la app de cámara nativa
-// y sube el video ya grabado (en iPhone llega como .mov, igual se almacena).
-const videoUploadInput = document.getElementById('videoUploadInput');
-document.getElementById('videoUploadBtn')?.addEventListener('click', () => videoUploadInput.click());
-videoUploadInput?.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  files.lifeProofVideo = file;
-  clearFieldError(videoPreview);
-  videoPreview.src = URL.createObjectURL(file);
-  videoPreview.classList.add('show');
-  stopCamera();
-});
-
 function stopCamera() {
   if (mediaStream) {
     mediaStream.getTracks().forEach(track => track.stop());
