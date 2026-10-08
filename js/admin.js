@@ -1178,8 +1178,6 @@ async function runAnalysis(verificationId) {
         .single();
 
       if (data && data.overall_score != null && data.analyzed_at !== prevAnalyzedAt) {
-
-      if (data && data.overall_score != null && data.analyzed_at !== prevAnalyzedAt) {
         setAnalysisLoading(false);
         await loadExistingAnalysis(verificationId);
         showToast('Análisis completado', 'success');
